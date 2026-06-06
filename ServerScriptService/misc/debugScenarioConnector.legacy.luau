@@ -12,7 +12,8 @@ game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(functio
 			
 			["UnitData"] = {
 				["UnitType"] = "Player", -- Player / FriendlyAI / EnemyAI,
-				["PlayerID"] = triggeringPlayer.UserId
+				["PlayerID"] = triggeringPlayer.UserId,
+				["UnitName"] = triggeringPlayer.Name
 			},
 			
 			
@@ -28,8 +29,9 @@ game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(functio
 		},
 		
 		
-		["TestEnemy1"] = moduleUnitDatabase.Enemies.TestUnit
-		
+		["TestEnemy1"] = moduleUnitDatabase.newUnit("Enemies", "TestUnit"),
+		["TestEnemy2"] = moduleUnitDatabase.newUnit("Enemies", "TestUnit"),
+		["TestEnemy3"] = moduleUnitDatabase.newUnit("Enemies", "TestUnit")
 		
 		
 	}

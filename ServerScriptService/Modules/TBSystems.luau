@@ -30,8 +30,10 @@ function TBSystems.startEncounter(baseUnits)
 		--print(unitID, newUnitData, storedUnitData) --debug
 
 		newUnitData["UnitData"] = {}
-		newUnitData["UnitData"]["UnitType"] = storedUnitData["UnitData"]["UnitType"]
-		newUnitData["UnitData"]["PlayerID"] = storedUnitData["UnitData"]["PlayerID"]
+		for unitDataName, unitDataValue in storedUnitData["UnitData"] do
+			newUnitData["UnitData"][unitDataName] = unitDataValue
+		end
+		--TODO: same issue as below, fallback systems
 		
 		-- individual stats loop
 		-- replaces default stats for corresponding stat on the inputted unit data
@@ -39,7 +41,7 @@ function TBSystems.startEncounter(baseUnits)
 		for statName, statValue in storedUnitData["Stats"] do
 			newUnitData["Stats"][statName] = statValue
 		end
-		
+		--TODO: add a fallback system if the newunitdata stats are missing stuff. for now we're assuming it has the same stuff as the default to cause errors to catch if the stats inputted are wrong.
 		
 		--copies storedUnitData[actions] to newunitdata
 		newUnitData["Actions"] = {}
@@ -78,14 +80,50 @@ function TBSystems.playerTurn(encounterID, encounterUnitID)
 	local thisEncounter = TBSystems.encounterData[encounterID]
 	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
 	
+	local thisPlayer = PlayersService:GetPlayerByUserId(unitWhoseTurn["UnitData"]["PlayerID"])
 	
-	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(PlayersService:GetPlayerByUserId(unitWhoseTurn["UnitData"]["PlayerID"]), unitWhoseTurn.Actions)
-	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Connect(function(firedPlayer, actionFunction)
-		moduleActionsDatabase[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][1])--defender is placeholder TODO: make it selectable
+	
+	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "openActionMenu", unitWhoseTurn.Actions)
+	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Connect(function(firedPlayer, RE_request, arg1, arg2)
+		if RE_request == "performAction" then
+			local actionFunction = arg1
+			local targetID = arg2
+			print(actionFunction)
+
+			moduleActionsDatabase[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][targetID])--defender is placeholder TODO: make it selectable
+		elseif RE_request == "openSubmenuTargeting" then
+			local actionFunction = arg1
+			local validEnemyTargetList = getValidEnemyTargets(encounterID, encounterUnitID)
+			print(validEnemyTargetList)
+			game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "openSubmenuTargeting", validEnemyTargetList, actionFunction)
+			
+		end
+		
+		
+		
 		TBSystems.debugDisplayEncounter(encounterID)
 	end)
 end
 
+function getValidEnemyTargets(encounterID, encounterUnitID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
+	
+	if unitWhoseTurn["UnitData"]["UnitType"] == "Player" or unitWhoseTurn["UnitData"]["UnitType"] == "FriendlyAI" then
+		local validTargetList = {}
+		for unitID, unitData in thisEncounter["Units"] do
+			if unitData["UnitData"]["UnitType"] == "EnemyAI" then
+				validTargetList[unitID] = thisEncounter["Units"][unitID] 
+			end
+		end
+		
+		return validTargetList
+		
+	elseif unitWhoseTurn["UnitData"]["UnitType"] == "EnemyAI" then
+		
+		--TODO
+	end
+end
 
 
 
@@ -97,6 +135,21 @@ function TBSystems.debugDisplayEncounter(encounterUID)
 	
 end
 
-
+function TBSystems.encounterTurnOrder(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	
+	local turnOrder = {} --placeholder turn order until speed stats are implemented, do turn order based off unit ID's chronologically
+	--this code below is temp
+	for unitID, unitData in thisEncounter["Units"] do
+		table.append(turnOrder, unitID)
+	end
+	
+	
+	-- turn order handler, with waits for events and other things
+	for _, v in turnOrder do
+		TBSystems.unitTurnHandler(encounterID, v)
+	end
+	
+end
 
 return TBSystems
