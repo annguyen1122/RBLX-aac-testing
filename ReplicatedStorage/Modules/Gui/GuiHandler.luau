@@ -2,7 +2,6 @@ local GuiHandler = {}
 
 function GuiHandler.actionMenu(actionsData)
 	
-	print(actionsData)
 	
 	local newActionGui = game.ReplicatedStorage.Gui.prototypeActionSelect:Clone()
 	
@@ -20,7 +19,6 @@ function GuiHandler.actionMenu(actionsData)
 end
 
 function GuiHandler.openSubmenuTargeting(validTargets, actionFunction)
-	print(validTargets)
 
 	local newSubmenu = game.ReplicatedStorage.Gui.prototypeActionSelect.Frame.TemplateSubmenu:Clone()
 
@@ -39,6 +37,12 @@ function GuiHandler.openSubmenuTargeting(validTargets, actionFunction)
 end
 -- later rewrite this, maybe a better approach might be to instead call the server for validtargets data and handle the gui locally, instead of passing the values to server to pass back to client with more data.
 -- oh and properly rename validtargets to be validenemytargets
+
+
+--assumes actionmenu exists
+function GuiHandler.closeActionMenu()
+	game.Players.LocalPlayer.PlayerGui.prototypeActionSelect:Destroy()
+end
 
 
 return GuiHandler

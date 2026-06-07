@@ -10,6 +10,8 @@ game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnClientEvent:Connect(functio
 		local validEnemyTargetList = arg1
 		local actionFunction = arg2
 		moduleGuiHandler.openSubmenuTargeting(validEnemyTargetList, actionFunction)
+	elseif request == "closeActionMenu" then
+		moduleGuiHandler.closeActionMenu()
 	end
 	
 end)

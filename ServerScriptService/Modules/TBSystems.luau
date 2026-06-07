@@ -54,7 +54,7 @@ function TBSystems.startEncounter(baseUnits)
 		unitID += 1
 	end
 	
-	
+	createTurnOrder(newUUID)
 	return newUUID
 end
 
@@ -67,7 +67,7 @@ function TBSystems.unitTurnHandler(encounterID, encounterUnitID)
 	if unitWhoseTurn["UnitData"]["UnitType"] == "Player" then
 		TBSystems.playerTurn(encounterID, encounterUnitID)
 	elseif unitWhoseTurn["UnitData"]["UnitType"] == "EnemyAI" then
-	
+		print("ENEMY TURN")
 	elseif unitWhoseTurn["UnitData"]["UnitType"] == "FriendlyAI" then
 		
 	else
@@ -85,25 +85,33 @@ function TBSystems.playerTurn(encounterID, encounterUnitID)
 	
 	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "openActionMenu", unitWhoseTurn.Actions)
 	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Connect(function(firedPlayer, RE_request, arg1, arg2)
-		if RE_request == "performAction" then
-			local actionFunction = arg1
-			local targetID = arg2
-			print(actionFunction)
+		if firedPlayer.UserId == thisPlayer.UserId then -- check for if it's the same player, so multiple players don't conflict with this
+			if RE_request == "performAction" then
+				local actionFunction = arg1
+				local targetID = arg2
+				--print(actionFunction)
 
-			moduleActionsDatabase[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][targetID])--defender is placeholder TODO: make it selectable
-		elseif RE_request == "openSubmenuTargeting" then
-			local actionFunction = arg1
-			local validEnemyTargetList = getValidEnemyTargets(encounterID, encounterUnitID)
-			print(validEnemyTargetList)
-			game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "openSubmenuTargeting", validEnemyTargetList, actionFunction)
-			
+				moduleActionsDatabase[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][targetID])--defender is placeholder TODO: make it selectable
+				TBSystems.endPlayerTurn(thisPlayer)
+				beginNextTurn(encounterID)
+			elseif RE_request == "openSubmenuTargeting" then
+				local actionFunction = arg1
+				local validEnemyTargetList = getValidEnemyTargets(encounterID, encounterUnitID)
+				game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "openSubmenuTargeting", validEnemyTargetList, actionFunction)
+
+			end
+			--TBSystems.debugDisplayEncounter(encounterID)
 		end
-		
-		
-		
-		TBSystems.debugDisplayEncounter(encounterID)
 	end)
 end
+
+
+function TBSystems.endPlayerTurn(thisPlayer)
+	
+	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "closeActionMenu")
+	
+end
+
 
 function getValidEnemyTargets(encounterID, encounterUnitID)
 	local thisEncounter = TBSystems.encounterData[encounterID]
@@ -122,8 +130,10 @@ function getValidEnemyTargets(encounterID, encounterUnitID)
 	elseif unitWhoseTurn["UnitData"]["UnitType"] == "EnemyAI" then
 		
 		--TODO
+
 	end
 end
+
 
 
 
@@ -135,21 +145,34 @@ function TBSystems.debugDisplayEncounter(encounterUID)
 	
 end
 
-function TBSystems.encounterTurnOrder(encounterID)
+function createTurnOrder(encounterID)
 	local thisEncounter = TBSystems.encounterData[encounterID]
 	
-	local turnOrder = {} --placeholder turn order until speed stats are implemented, do turn order based off unit ID's chronologically
+	thisEncounter["TurnData"] = {}
+	thisEncounter["TurnData"]["TurnOrder"] = {} 
+	
+	--placeholder turn order until speed stats are implemented, do turn order based off unit ID's chronologically
 	--this code below is temp
+	local turnNum = 0
 	for unitID, unitData in thisEncounter["Units"] do
-		table.append(turnOrder, unitID)
+		thisEncounter["TurnData"]["TurnOrder"][turnNum] = unitID
+		turnNum += 1
 	end
 	
+	thisEncounter["TurnData"]["CurrentTurn"] = 0
+	print(thisEncounter["TurnData"])
+end
+
+function beginNextTurn(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
 	
-	-- turn order handler, with waits for events and other things
-	for _, v in turnOrder do
-		TBSystems.unitTurnHandler(encounterID, v)
-	end
+	local turnData = thisEncounter["TurnData"]
 	
+	turnData["CurrentTurn"] += 1
+	
+	print(turnData["CurrentTurn"], turnData["TurnOrder"][turnData["CurrentTurn"]])
+	
+	TBSystems.unitTurnHandler(encounterID, turnData["TurnOrder"][turnData["CurrentTurn"]])
 end
 
 return TBSystems
