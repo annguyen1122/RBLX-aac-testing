@@ -3,8 +3,9 @@ local HttpService = game:GetService("HttpService")
 local PlayersService = game:GetService("Players")
 
 local moduleUnitDatabase = require(game.ServerScriptService.Modules.unitDatabase)
-local moduleActionsDatabase = require(game.ServerScriptService.Modules.actionsDatabase)
-
+local moduleActionsCode = require(game.ServerScriptService.Modules.actionsCode)
+local moduleEnemyAi = require(game.ServerScriptService.Modules.enemyAI)
+local moduleActionsData = require(game.ReplicatedStorage.Modules.ReplicatedData.actionsData)
 
 local TBSystems = {}
 
@@ -45,8 +46,8 @@ function TBSystems.startEncounter(baseUnits)
 		
 		--copies storedUnitData[actions] to newunitdata
 		newUnitData["Actions"] = {}
-		for actionName, actionFunction in storedUnitData["Actions"] do
-			newUnitData["Actions"][actionName] = actionFunction
+		for actionName, actionInternalName in storedUnitData["Actions"] do
+			newUnitData["Actions"][actionName] = actionInternalName
 		end
 		--TODO: make the values in the default be the fallback if values are wrong
 		
@@ -55,10 +56,12 @@ function TBSystems.startEncounter(baseUnits)
 	end
 	
 	createTurnOrder(newUUID)
+	assignTeams(newUUID)
+	beginNextTurn(newUUID)
 	return newUUID
 end
 
-
+--sorts the turn so it'll run the proper code for if it's a player or AI
 function TBSystems.unitTurnHandler(encounterID, encounterUnitID)
 	
 	local thisEncounter = TBSystems.encounterData[encounterID]
@@ -67,14 +70,14 @@ function TBSystems.unitTurnHandler(encounterID, encounterUnitID)
 	if unitWhoseTurn["UnitData"]["UnitType"] == "Player" then
 		TBSystems.playerTurn(encounterID, encounterUnitID)
 	elseif unitWhoseTurn["UnitData"]["UnitType"] == "EnemyAI" then
-		print("ENEMY TURN")
+		enemyTurn(encounterID, encounterUnitID)
 	elseif unitWhoseTurn["UnitData"]["UnitType"] == "FriendlyAI" then
-		
+		print("unimplemented")
 	else
 		error("Invalid Unit Type")
 	end
-		
 end
+
 
 function TBSystems.playerTurn(encounterID, encounterUnitID)
 	local thisEncounter = TBSystems.encounterData[encounterID]
@@ -82,57 +85,154 @@ function TBSystems.playerTurn(encounterID, encounterUnitID)
 	
 	local thisPlayer = PlayersService:GetPlayerByUserId(unitWhoseTurn["UnitData"]["PlayerID"])
 	
+
+	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "openActionMenu", unitWhoseTurn.Actions, thisEncounter)
 	
-	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "openActionMenu", unitWhoseTurn.Actions)
-	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Connect(function(firedPlayer, RE_request, arg1, arg2)
+	-- TODO: need some code here to make sure the event doesnt get assigned twice so that turns dont happen twice when it loops back around
+	local playerActionMenuInput --defines variable before, so the line below can use it inside
+	playerActionMenuInput = game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Connect(function(firedPlayer, RE_request, arg1, arg2)
 		if firedPlayer.UserId == thisPlayer.UserId then -- check for if it's the same player, so multiple players don't conflict with this
 			if RE_request == "performAction" then
-				local actionFunction = arg1
+				local actionInternalName = arg1
 				local targetID = arg2
-				--print(actionFunction)
+				--print(actionInternalName)
+				local actionFunction = moduleActionsData["generalActions"][actionInternalName]["actionFunction"]
 
-				moduleActionsDatabase[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][targetID])--defender is placeholder TODO: make it selectable
+				moduleActionsCode[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][targetID]) --TODO: add code here to validate if the selections are valid from player input.
 				TBSystems.endPlayerTurn(thisPlayer)
 				beginNextTurn(encounterID)
-			elseif RE_request == "openSubmenuTargeting" then
-				local actionFunction = arg1
-				local validEnemyTargetList = getValidEnemyTargets(encounterID, encounterUnitID)
-				game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "openSubmenuTargeting", validEnemyTargetList, actionFunction)
-
+				playerActionMenuInput:Disconnect()
+				
+			elseif RE_request == "getValidTargetsForSubmenu" then
+				--local actionInternalName = arg1
+				
+				--local validEnemyTargetList = getValidTargets(encounterID, encounterUnitID, actionInternalName)
+				--game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "respondValidTargets", validEnemyTargetList, actionInternalName)
 			end
 			--TBSystems.debugDisplayEncounter(encounterID)
 		end
 	end)
+	
 end
 
-
+--TODO: need some code to make sure exploiters dont attack out of turn, validate inputs to only work if during turn.
 function TBSystems.endPlayerTurn(thisPlayer)
 	
 	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "closeActionMenu")
 	
 end
 
-
-function getValidEnemyTargets(encounterID, encounterUnitID)
+function enemyTurn(encounterID, encounterUnitID)
+	
 	local thisEncounter = TBSystems.encounterData[encounterID]
 	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
 	
-	if unitWhoseTurn["UnitData"]["UnitType"] == "Player" or unitWhoseTurn["UnitData"]["UnitType"] == "FriendlyAI" then
-		local validTargetList = {}
-		for unitID, unitData in thisEncounter["Units"] do
-			if unitData["UnitData"]["UnitType"] == "EnemyAI" then
-				validTargetList[unitID] = thisEncounter["Units"][unitID] 
-			end
-		end
-		
-		return validTargetList
-		
-	elseif unitWhoseTurn["UnitData"]["UnitType"] == "EnemyAI" then
-		
-		--TODO
+	local enemyAIType = unitWhoseTurn["UnitData"]["EnemyAI"]
+	
+	--local enemyOptions = getValidTargets(encounterID, encounterUnitID, )
+	
+	local potentialActions = unitWhoseTurn["Actions"]
+	local potentialTargets = getAllTeamUnits(encounterID, "Playerside")
+	
+	local enemyAction = moduleEnemyAi[enemyAIType](potentialActions, potentialTargets)
+	
+	print(enemyAction)
+	local actionInternalName = enemyAction[1]
+	local enemyTargetID = enemyAction[2]
 
+	local actionFunction = moduleActionsData["generalActions"][actionInternalName]["actionFunction"]
+	
+	print(enemyAction, actionInternalName, enemyTargetID)
+	
+	moduleActionsCode[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][enemyTargetID])
+	print(encounterUnitID, "take a turn")
+	
+	
+	
+	beginNextTurn(encounterID)
+end
+
+function assignTeams(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	
+	thisEncounter["Teams"] = {}
+	thisEncounter["Teams"]["Playerside"] = {}
+	thisEncounter["Teams"]["Enemyside"] = {}
+	
+	for unitID, unit in thisEncounter["Units"] do
+		if unit["UnitData"]["UnitType"] == "Player" or unit["UnitData"]["UnitType"] == "FriendlyAI" then
+			thisEncounter["Teams"]["Playerside"][unitID] = unitID
+		elseif unit["UnitData"]["UnitType"] == "EnemyAI" then
+			thisEncounter["Teams"]["Enemyside"][unitID] = unitID
+		end
 	end
 end
+
+--find a way to put this so its not copied everywhere, maybe a modulescript somewhere
+function getAllTeamUnits(encounterID, desiredTeam)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	local teamUnits = {}
+		
+	if desiredTeam == "Enemyside" then
+		print(thisEncounter["Teams"])
+		for teamID, unitID in thisEncounter["Teams"]["Enemyside"] do
+			teamUnits[unitID] = thisEncounter["Units"][unitID]
+		end
+	elseif desiredTeam == "Playerside" then
+		for teamID, unitID in thisEncounter["Teams"]["Playerside"] do
+			teamUnits[unitID] = thisEncounter["Units"][unitID]
+		end
+	end
+	
+	print(teamUnits)
+	return teamUnits
+end
+
+--replacing this code with a different system, grouping the units into teams in the dictionary instead of getting it every time. the teams will be passed to client to make it easier, but i need to make sure to validate it.
+
+--function getValidTargets(encounterID, encounterUnitID, attackInternalName)
+--	local thisEncounter = TBSystems.encounterData[encounterID]
+--	print(thisEncounter)
+--	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
+	
+--	local attackData = moduleActionsData.generalActions[attackInternalName]
+	
+--	local validTargets
+--	if attackData["actionTargeting"] == "enemyTargeting" then
+--		validTargets = getValidEnemyTargets(encounterID, encounterUnitID)
+--	end
+	
+--	return validTargets
+--end
+
+--function getValidEnemyTargets(encounterID, encounterUnitID)
+--	local thisEncounter = TBSystems.encounterData[encounterID]
+--	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
+	
+--	if unitWhoseTurn["UnitData"]["UnitType"] == "Player" or unitWhoseTurn["UnitData"]["UnitType"] == "FriendlyAI" then
+--		local validTargetList = {}
+--		for unitID, unitData in thisEncounter["Units"] do
+--			if unitData["UnitData"]["UnitType"] == "EnemyAI" then
+--				validTargetList[unitID] = thisEncounter["Units"][unitID] 
+--			end
+--		end
+		
+--		return validTargetList
+		
+--	elseif unitWhoseTurn["UnitData"]["UnitType"] == "EnemyAI" then
+		
+--		--TODO
+--		local validTargetList = {}
+--		for unitID, unitData in thisEncounter["Units"] do
+--			if unitData["UnitData"]["UnitType"] == "Player" or unitWhoseTurn["UnitData"]["UnitType"] == "FriendlyAI" then
+--				validTargetList[unitID] = thisEncounter["Units"][unitID]
+--			end
+--		end
+
+--		return validTargetList
+
+--	end
+--end
 
 
 
@@ -160,7 +260,6 @@ function createTurnOrder(encounterID)
 	end
 	
 	thisEncounter["TurnData"]["CurrentTurn"] = 0
-	print(thisEncounter["TurnData"])
 end
 
 function beginNextTurn(encounterID)
@@ -170,8 +269,12 @@ function beginNextTurn(encounterID)
 	
 	turnData["CurrentTurn"] += 1
 	
-	print(turnData["CurrentTurn"], turnData["TurnOrder"][turnData["CurrentTurn"]])
+	--print(turnData["CurrentTurn"], turnData["TurnOrder"][turnData["CurrentTurn"]])
 	
+	-- resets turn order once reaches end
+	if turnData["TurnOrder"][turnData["CurrentTurn"]] == nil then
+		turnData["CurrentTurn"] = 0
+	end
 	TBSystems.unitTurnHandler(encounterID, turnData["TurnOrder"][turnData["CurrentTurn"]])
 end
 

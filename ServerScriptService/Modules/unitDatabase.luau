@@ -6,7 +6,8 @@ unitDatabase.DefaultData = {
 	["UnitData"] = {
 		["UnitType"] = "Unknown", -- Player / FriendlyAI / EnemyAI
 		["PlayerID"] = "Unknown",
-		["UnitName"] = "Unknown"
+		["UnitName"] = "Unknown",
+		["EnemyAI"] = "Unknown"
 	},
 	
 	
@@ -17,7 +18,7 @@ unitDatabase.DefaultData = {
 	
 	["Actions"] = {
 		-- make sure that the future code takes into account the possibility of multiple actions being here and varied possible amounts.
-		["DebugAttack"] = "debugAttack" --the name is what's put when doing moduleActionsDatabase[HERE]
+		["Debug Attack"] = "DebugAttack" --the name is what's put when doing moduleActionsCode[HERE]
 	}
 	
 }
@@ -31,7 +32,8 @@ unitDatabase.Enemies = {
 	["TestUnit"] = {
 		["UnitData"] = {
 			["UnitType"] = "EnemyAI", -- Player / FriendlyAI / EnemyAI
-			["UnitName"] = "The Test Unit"
+			["UnitName"] = "The Test Unit",
+			["EnemyAI"] = "randomChoice",
 		},
 		
 		["Stats"] = {
@@ -40,7 +42,7 @@ unitDatabase.Enemies = {
 		},
 		
 		["Actions"] = {
-			["DebugAttack"] = "debugAttack" --the name is what's put when doing moduleActionsDatabase[HERE]
+			["Debug Attack"] = "DebugAttack" --the name is what's put when doing moduleActionsCode[HERE]
 		}
 		
 		

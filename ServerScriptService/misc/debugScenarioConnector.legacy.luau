@@ -24,7 +24,7 @@ game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(functio
 			
 			["Actions"] = {
 				-- make sure that the future code takes into account the possibility of multiple actions being here and varied possible amounts.
-				["DebugAttack"] = "debugAttack" --the name is what's put when doing moduleActionsDatabase[HERE]
+				["Debug Attack"] = "DebugAttack" --the name is what's put when doing moduleActionsCode[HERE]
 			}
 		},
 		
@@ -38,8 +38,5 @@ game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(functio
 	
 	local encounterID = moduleTBSystems.startEncounter(baseUnits)
 	moduleTBSystems.debugDisplayEncounter(encounterID)
-	
-	--testing turn of unit 0
-	moduleTBSystems.unitTurnHandler(encounterID, 0)
 	
 end)
