@@ -16,3 +16,13 @@ game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnClientEvent:Connect(functio
 	end
 	
 end)
+
+
+
+game.ReplicatedStorage.RemoteEvents.Gui.setCamera.OnClientEvent:Connect(function()
+	local camera = game.Workspace.Camera
+	camera.CameraType = Enum.CameraType.Scriptable
+
+	local cFrame = CFrame.new(Vector3.new(0, 120, 30), Vector3.new(0, 100, 0))
+	camera.CFrame = cFrame
+end)

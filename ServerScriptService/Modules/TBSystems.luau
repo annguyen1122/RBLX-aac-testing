@@ -6,6 +6,7 @@ local moduleUnitDatabase = require(game.ServerScriptService.Modules.unitDatabase
 local moduleActionsCode = require(game.ServerScriptService.Modules.actionsCode)
 local moduleEnemyAi = require(game.ServerScriptService.Modules.enemyAI)
 local moduleActionsData = require(game.ReplicatedStorage.Modules.ReplicatedData.actionsData)
+local moduleTurnHelper = require(game.ReplicatedStorage.Modules.helpers.turnHelper)
 
 local TBSystems = {}
 
@@ -55,9 +56,12 @@ function TBSystems.startEncounter(baseUnits)
 		unitID += 1
 	end
 	
+	
+	loadMap(newUUID, "Crossroads", "CrossroadsVariation1")
+	setPlayersCamera(newUUID)
 	createTurnOrder(newUUID)
 	assignTeams(newUUID)
-	beginNextTurn(newUUID)
+	endTurn(newUUID)
 	return newUUID
 end
 
@@ -66,6 +70,13 @@ function TBSystems.unitTurnHandler(encounterID, encounterUnitID)
 	
 	local thisEncounter = TBSystems.encounterData[encounterID]
 	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
+	
+	if unitWhoseTurn["UnitData"]["DeathStatus"] == "Dead" then
+		print("DEAD, SKIP TURN")
+		endTurn(encounterID)
+		return
+	end
+	
 	
 	if unitWhoseTurn["UnitData"]["UnitType"] == "Player" then
 		TBSystems.playerTurn(encounterID, encounterUnitID)
@@ -100,7 +111,7 @@ function TBSystems.playerTurn(encounterID, encounterUnitID)
 
 				moduleActionsCode[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][targetID]) --TODO: add code here to validate if the selections are valid from player input.
 				TBSystems.endPlayerTurn(thisPlayer)
-				beginNextTurn(encounterID)
+				endTurn(encounterID)
 				playerActionMenuInput:Disconnect()
 				
 			elseif RE_request == "getValidTargetsForSubmenu" then
@@ -114,13 +125,15 @@ function TBSystems.playerTurn(encounterID, encounterUnitID)
 	end)
 	
 end
-
 --TODO: need some code to make sure exploiters dont attack out of turn, validate inputs to only work if during turn.
+
+
 function TBSystems.endPlayerTurn(thisPlayer)
 	
 	game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "closeActionMenu")
 	
 end
+
 
 function enemyTurn(encounterID, encounterUnitID)
 	
@@ -132,7 +145,7 @@ function enemyTurn(encounterID, encounterUnitID)
 	--local enemyOptions = getValidTargets(encounterID, encounterUnitID, )
 	
 	local potentialActions = unitWhoseTurn["Actions"]
-	local potentialTargets = getAllTeamUnits(encounterID, "Playerside")
+	local potentialTargets = moduleTurnHelper.getAllAliveTeamUnits("Playerside", thisEncounter)
 	
 	local enemyAction = moduleEnemyAi[enemyAIType](potentialActions, potentialTargets)
 	
@@ -142,14 +155,14 @@ function enemyTurn(encounterID, encounterUnitID)
 
 	local actionFunction = moduleActionsData["generalActions"][actionInternalName]["actionFunction"]
 	
-	print(enemyAction, actionInternalName, enemyTargetID)
+	print(enemyAction, actionInternalName, enemyTargetID, actionFunction)
 	
 	moduleActionsCode[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][enemyTargetID])
 	print(encounterUnitID, "take a turn")
 	
 	
 	
-	beginNextTurn(encounterID)
+	endTurn(encounterID)
 end
 
 function assignTeams(encounterID)
@@ -168,25 +181,6 @@ function assignTeams(encounterID)
 	end
 end
 
---find a way to put this so its not copied everywhere, maybe a modulescript somewhere
-function getAllTeamUnits(encounterID, desiredTeam)
-	local thisEncounter = TBSystems.encounterData[encounterID]
-	local teamUnits = {}
-		
-	if desiredTeam == "Enemyside" then
-		print(thisEncounter["Teams"])
-		for teamID, unitID in thisEncounter["Teams"]["Enemyside"] do
-			teamUnits[unitID] = thisEncounter["Units"][unitID]
-		end
-	elseif desiredTeam == "Playerside" then
-		for teamID, unitID in thisEncounter["Teams"]["Playerside"] do
-			teamUnits[unitID] = thisEncounter["Units"][unitID]
-		end
-	end
-	
-	print(teamUnits)
-	return teamUnits
-end
 
 --replacing this code with a different system, grouping the units into teams in the dictionary instead of getting it every time. the teams will be passed to client to make it easier, but i need to make sure to validate it.
 
@@ -276,6 +270,77 @@ function beginNextTurn(encounterID)
 		turnData["CurrentTurn"] = 0
 	end
 	TBSystems.unitTurnHandler(encounterID, turnData["TurnOrder"][turnData["CurrentTurn"]])
+end
+
+function endTurn(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	
+	-- for all units in the encounter
+	for unitID, unitData in thisEncounter["Units"] do
+		deathCheck(encounterID, unitID)
+	end
+	
+	checkVictory(encounterID)
+	
+	beginNextTurn(encounterID)
+end
+
+--probably split this function later, but it both returns death status, and updates death status.
+function deathCheck(encounterID, unitID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	local thisUnit = thisEncounter["Units"][unitID]
+	
+	if thisUnit["UnitData"]["DeathStatus"] == "Dead" then
+		return "Dead"
+	end
+	
+	if thisUnit["Stats"]["Health"] <= 0 and thisUnit["UnitData"]["DeathStatus"] == "Alive" then -- checks if they're under 0hp, and if they're not already marked dead
+		doDeath(encounterID, unitID)
+		return "Dead"
+	end
+	return "Alive"
+end
+
+function doDeath(encounterID, unitID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	local thisUnit = thisEncounter["Units"][unitID]
+	
+	thisUnit["UnitData"]["DeathStatus"] = "Dead"
+	print("UNIT ", unitID, " is dead")
+end
+
+function checkVictory(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	
+	local alivePlayerside = moduleTurnHelper.getAllAliveTeamUnits("Playerside", thisEncounter)
+	local aliveEnemyside = moduleTurnHelper.getAllAliveTeamUnits("Enemyside", thisEncounter)
+	
+	print(aliveEnemyside, #aliveEnemyside, alivePlayerside, #alivePlayerside)
+	
+	if not next(aliveEnemyside) then
+		print("YYAAAY YOU WIINNN")
+	elseif not next(alivePlayerside) then
+		print("OH NOOOES YOU LOOSSTT")
+	end
+	
+end
+
+function loadMap(encounterID, mapCategory, mapName)
+	local newMap = game.ServerStorage.Maps[mapCategory][mapName]:Clone()
+	newMap.Parent = game.Workspace
+	
+end
+
+function setPlayersCamera(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	
+	for unitID, unitData in thisEncounter["Units"] do
+		if unitData["UnitData"]["UnitType"] == "Player" then
+			local thisPlayer = PlayersService:GetPlayerByUserId(unitData["UnitData"]["PlayerID"])
+			game.ReplicatedStorage.RemoteEvents.Gui.setCamera:FireClient(thisPlayer)
+		end
+	end
+	
 end
 
 return TBSystems

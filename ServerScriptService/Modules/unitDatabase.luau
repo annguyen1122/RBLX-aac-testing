@@ -7,7 +7,8 @@ unitDatabase.DefaultData = {
 		["UnitType"] = "Unknown", -- Player / FriendlyAI / EnemyAI
 		["PlayerID"] = "Unknown",
 		["UnitName"] = "Unknown",
-		["EnemyAI"] = "Unknown"
+		["EnemyAI"] = "Unknown",
+		["DeathStatus"] = "Alive"
 	},
 	
 	
@@ -34,6 +35,7 @@ unitDatabase.Enemies = {
 			["UnitType"] = "EnemyAI", -- Player / FriendlyAI / EnemyAI
 			["UnitName"] = "The Test Unit",
 			["EnemyAI"] = "randomChoice",
+			["DeathStatus"] = "Alive"
 		},
 		
 		["Stats"] = {
@@ -42,7 +44,8 @@ unitDatabase.Enemies = {
 		},
 		
 		["Actions"] = {
-			["Debug Attack"] = "DebugAttack" --the name is what's put when doing moduleActionsCode[HERE]
+			["Debug Attack"] = "DebugAttack", --the name is what's put when doing moduleActionsCode[HERE]
+			["Skip Turn"] = "SkipTurn"
 		}
 		
 		

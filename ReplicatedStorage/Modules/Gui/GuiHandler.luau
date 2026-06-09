@@ -1,5 +1,6 @@
 local GuiHandler = {}
 
+local moduleTurnHelper = require(game.ReplicatedStorage.Modules.helpers.turnHelper)
 local moduleActionsData = require(game.ReplicatedStorage.Modules.ReplicatedData.actionsData)
 
 function GuiHandler.actionMenu(actionOptions, encounterData)
@@ -16,9 +17,8 @@ function GuiHandler.actionMenu(actionOptions, encounterData)
 			print(encounterData)
 			local targetOptions
 			if moduleActionsData.generalActions[actionInternalName]["actionTargeting"] == "enemyTargeting" then
-				targetOptions = getAllTeamUnits("Enemyside", encounterData)
+				targetOptions = moduleTurnHelper.getAllAliveTeamUnits("Enemyside", encounterData)
 			end
-
 			openSubmenuTargeting(targetOptions, actionInternalName)
 		end)
 	end
@@ -54,27 +54,6 @@ end
 function GuiHandler.closeActionMenu()
 	game.Players.LocalPlayer.PlayerGui.prototypeActionSelect:Destroy()
 end
-
---find a way to put this so its not copied everywhere, maybe a modulescript somewhere
-function getAllTeamUnits(desiredTeam, encounterData)
-	local thisEncounter = encounterData
-	local teamUnits = {}
-
-	if desiredTeam == "Enemyside" then
-		print(thisEncounter["Teams"])
-		for teamID, unitID in thisEncounter["Teams"]["Enemyside"] do
-			teamUnits[unitID] = thisEncounter["Units"][unitID]
-		end
-	elseif desiredTeam == "Playerside" then
-		for teamID, unitID in thisEncounter["Teams"]["Playerside"] do
-			teamUnits[unitID] = thisEncounter["Units"][unitID]
-		end
-	end
-
-	print(teamUnits)
-	return teamUnits
-end
-
 
 return GuiHandler
 

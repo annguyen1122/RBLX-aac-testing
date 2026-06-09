@@ -13,7 +13,8 @@ game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(functio
 			["UnitData"] = {
 				["UnitType"] = "Player", -- Player / FriendlyAI / EnemyAI,
 				["PlayerID"] = triggeringPlayer.UserId,
-				["UnitName"] = triggeringPlayer.Name
+				["UnitName"] = triggeringPlayer.Name,
+				["DeathStatus"] = "Alive"
 			},
 			
 			
@@ -24,7 +25,8 @@ game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(functio
 			
 			["Actions"] = {
 				-- make sure that the future code takes into account the possibility of multiple actions being here and varied possible amounts.
-				["Debug Attack"] = "DebugAttack" --the name is what's put when doing moduleActionsCode[HERE]
+				["Debug Attack"] = "DebugAttack",
+				["Instant Kill"] = "DebugInstantKill"
 			}
 		},
 		

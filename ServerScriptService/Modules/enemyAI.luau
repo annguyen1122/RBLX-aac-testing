@@ -20,7 +20,13 @@ function enemyAI.randomChoice(potentialActions, enemyOptions)
 		enemyOptionsWithKeyOnName[key] = enemyID
 		key += 1
 	end
-
+	
+	-- if there's no actions or options, return skipturn
+	if #actionListWithKeyOnName <= 0 or #enemyOptionsWithKeyOnName <= 0 then
+		local skipTurnAction = {"SkipTurn"}
+		return skipTurnAction
+	end
+	
 	local enemyAction = {actionListWithKeyOnName[math.random(1, #actionListWithKeyOnName)],enemyOptionsWithKeyOnName[math.random(1, #enemyOptionsWithKeyOnName)], }
 	
 	return enemyAction

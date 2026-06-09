@@ -16,6 +16,25 @@ function actionsCode.debugAttack(encounterID, attackerData, defenderData) --thes
 	
 end
 
+function actionsCode.skipTurn(encounterID)
+	print("Turn skipped")
+end
+
+function actionsCode.debugInstantKill(encounterID, attackerData, defenderData)
+	
+	--attack intended to test debugging
+	-- supposed to do the base damage to the defender based off attacker's stats.
+	local baseDamage = 999
+
+	local finalDamage = (baseDamage) --damage calculation if want to change later lol
+
+	defenderData["Stats"]["Health"] -= finalDamage
+
+	print("DEATH: resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"])
+	--todo, add placeholder animation logic, vui, all that fancy stuff.
+
+	
+end
 
 
 return actionsCode
