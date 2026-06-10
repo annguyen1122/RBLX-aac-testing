@@ -7,6 +7,7 @@ local moduleActionsCode = require(game.ServerScriptService.Modules.actionsCode)
 local moduleEnemyAi = require(game.ServerScriptService.Modules.enemyAI)
 local moduleActionsData = require(game.ReplicatedStorage.Modules.ReplicatedData.actionsData)
 local moduleTurnHelper = require(game.ReplicatedStorage.Modules.helpers.turnHelper)
+local moduleAnimationFunctions = require(game.ServerScriptService.Modules.animationFunctions)
 
 local TBSystems = {}
 
@@ -61,6 +62,7 @@ function TBSystems.startEncounter(baseUnits)
 	setPlayersCamera(newUUID)
 	createTurnOrder(newUUID)
 	assignTeams(newUUID)
+	summonUnits(newUUID) -- do after teams are assigned
 	endTurn(newUUID)
 	return newUUID
 end
@@ -114,13 +116,7 @@ function TBSystems.playerTurn(encounterID, encounterUnitID)
 				endTurn(encounterID)
 				playerActionMenuInput:Disconnect()
 				
-			elseif RE_request == "getValidTargetsForSubmenu" then
-				--local actionInternalName = arg1
-				
-				--local validEnemyTargetList = getValidTargets(encounterID, encounterUnitID, actionInternalName)
-				--game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireClient(thisPlayer, "respondValidTargets", validEnemyTargetList, actionInternalName)
 			end
-			--TBSystems.debugDisplayEncounter(encounterID)
 		end
 	end)
 	
@@ -149,13 +145,11 @@ function enemyTurn(encounterID, encounterUnitID)
 	
 	local enemyAction = moduleEnemyAi[enemyAIType](potentialActions, potentialTargets)
 	
-	print(enemyAction)
 	local actionInternalName = enemyAction[1]
 	local enemyTargetID = enemyAction[2]
 
 	local actionFunction = moduleActionsData["generalActions"][actionInternalName]["actionFunction"]
 	
-	print(enemyAction, actionInternalName, enemyTargetID, actionFunction)
 	
 	moduleActionsCode[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][enemyTargetID])
 	print(encounterUnitID, "take a turn")
@@ -272,6 +266,7 @@ function beginNextTurn(encounterID)
 	TBSystems.unitTurnHandler(encounterID, turnData["TurnOrder"][turnData["CurrentTurn"]])
 end
 
+--TODO: make a system just in case the checkvictory fails, cause enemys will infinitly loop their turn if it gets to that point
 function endTurn(encounterID)
 	local thisEncounter = TBSystems.encounterData[encounterID]
 	
@@ -305,6 +300,9 @@ function doDeath(encounterID, unitID)
 	local thisEncounter = TBSystems.encounterData[encounterID]
 	local thisUnit = thisEncounter["Units"][unitID]
 	
+	local workspaceInstance = thisUnit["UnitData"]["WorkspaceInstance"]
+	moduleAnimationFunctions.placeholderDeath(workspaceInstance.Humanoid.Animator)
+	
 	thisUnit["UnitData"]["DeathStatus"] = "Dead"
 	print("UNIT ", unitID, " is dead")
 end
@@ -315,7 +313,6 @@ function checkVictory(encounterID)
 	local alivePlayerside = moduleTurnHelper.getAllAliveTeamUnits("Playerside", thisEncounter)
 	local aliveEnemyside = moduleTurnHelper.getAllAliveTeamUnits("Enemyside", thisEncounter)
 	
-	print(aliveEnemyside, #aliveEnemyside, alivePlayerside, #alivePlayerside)
 	
 	if not next(aliveEnemyside) then
 		print("YYAAAY YOU WIINNN")
@@ -338,6 +335,63 @@ function setPlayersCamera(encounterID)
 		if unitData["UnitData"]["UnitType"] == "Player" then
 			local thisPlayer = PlayersService:GetPlayerByUserId(unitData["UnitData"]["PlayerID"])
 			game.ReplicatedStorage.RemoteEvents.Gui.setCamera:FireClient(thisPlayer)
+		end
+	end
+	
+end
+
+--this function only runs after teams are assigned, TODO: add a failsafe for this if it's not the case
+function summonUnits(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	
+	local unitsStorage = Instance.new("Folder")
+	unitsStorage.Name = "Units"
+	unitsStorage.Parent = game.Workspace
+	
+	local combatPlate = game.Workspace.combatPlate
+	local enemySpawn = combatPlate.basePlate.enemyLine
+	local playerSpawn = combatPlate.basePlate.playerLine
+	
+	local playerUnitsStorage = Instance.new("Folder")
+	playerUnitsStorage.Name = "PlayerUnits"
+	playerUnitsStorage.Parent = unitsStorage
+	local spawnIndex = 1
+	for nameUnitID, unitID in thisEncounter["Teams"]["Playerside"] do
+		local thisUnit = thisEncounter["Units"][unitID]
+		if thisEncounter["Units"][unitID]["UnitData"]["UnitType"] == "Player" then
+			local thisPlayer = PlayersService:GetPlayerByUserId(thisUnit["UnitData"]["PlayerID"])
+			
+			print(thisPlayer, "Spawn"..spawnIndex)
+			
+			local playerCopy = game.ServerStorage.Models.UnitModels.placeholderUnit:Clone()
+			playerCopy:PivotTo(playerSpawn["Spawn"..spawnIndex].WorldCFrame * CFrame.Angles(0, math.rad(270), 0))
+			local humanoidDescription = thisPlayer.Character.Humanoid:GetAppliedDescription()
+			playerCopy.Parent = playerUnitsStorage
+			playerCopy.Humanoid:ApplyDescriptionAsync(humanoidDescription)
+			playerCopy.HumanoidRootPart.Anchored = true
+			
+			thisEncounter["Units"][unitID]["UnitData"]["WorkspaceInstance"] = playerCopy
+			
+			spawnIndex += 1
+		end
+	end
+	
+	
+	local enemyUnitsStorage = Instance.new("Folder")
+	enemyUnitsStorage.Name = "EnemyUnits"
+	enemyUnitsStorage.Parent = unitsStorage
+	local spawnIndex = 1
+	for nameUnitID, unitID in thisEncounter["Teams"]["Enemyside"] do
+		local thisUnit = thisEncounter["Units"][unitID]
+		if thisEncounter["Units"][unitID]["UnitData"]["UnitType"] == "EnemyAI" then
+			local physicalUnit = game.ServerStorage.Models.UnitModels[thisUnit["UnitData"]["Model"]]:Clone()
+			physicalUnit:PivotTo(enemySpawn["Spawn"..spawnIndex].WorldCFrame * CFrame.Angles(0, math.rad(90), 0))
+			physicalUnit.Parent = enemyUnitsStorage
+			physicalUnit.HumanoidRootPart.Anchored = true
+			
+			thisEncounter["Units"][unitID]["UnitData"]["WorkspaceInstance"] = physicalUnit
+			
+			spawnIndex += 1
 		end
 	end
 	

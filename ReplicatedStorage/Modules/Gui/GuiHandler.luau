@@ -14,12 +14,15 @@ function GuiHandler.actionMenu(actionOptions, encounterData)
 		actionButton.Visible = true
 		actionButton.Parent = newActionGui.Frame.ScrollingFrame
 		actionButton.Activated:Connect(function()
-			print(encounterData)
-			local targetOptions
-			if moduleActionsData.generalActions[actionInternalName]["actionTargeting"] == "enemyTargeting" then
-				targetOptions = moduleTurnHelper.getAllAliveTeamUnits("Enemyside", encounterData)
+			if newActionGui.Frame:FindFirstChild("submenuTargeting") then
+				closeSubmenuTargeting()
+			else
+				local targetOptions
+				if moduleActionsData.generalActions[actionInternalName]["actionTargeting"] == "enemyTargeting" then
+					targetOptions = moduleTurnHelper.getAllAliveTeamUnits("Enemyside", encounterData)
+				end
+				openSubmenuTargeting(targetOptions, actionInternalName)
 			end
-			openSubmenuTargeting(targetOptions, actionInternalName)
 		end)
 	end
 	newActionGui.Parent =  game.Players.LocalPlayer.PlayerGui
@@ -44,11 +47,16 @@ function openSubmenuTargeting(validTargets, actionInternalName)
 	end
 	
 	newSubmenu.Visible = true
+	newSubmenu.Name = "submenuTargeting"
 	newSubmenu.Parent =  game.Players.LocalPlayer.PlayerGui.prototypeActionSelect.Frame --make this more safe, cause rn it's assuming there is a prototypeactionselect
 end
 -- later rewrite this, maybe a better approach might be to instead call the server for validtargets data and handle the gui locally, instead of passing the values to server to pass back to client with more data.
 -- oh and properly rename validtargets to be validenemytargets
 
+function closeSubmenuTargeting()
+	local submenu = game.Players.LocalPlayer.PlayerGui.prototypeActionSelect.Frame["submenuTargeting"]
+	submenu:Destroy()
+end
 
 --assumes actionmenu exists
 function GuiHandler.closeActionMenu()

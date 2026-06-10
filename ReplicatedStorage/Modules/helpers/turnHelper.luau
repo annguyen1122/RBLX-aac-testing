@@ -6,7 +6,6 @@ function turnHelper.getAllAliveTeamUnits(desiredTeam, encounterData)
 	local teamUnits = {}
 
 	if desiredTeam == "Enemyside" then
-		print(thisEncounter["Teams"])
 		for teamID, unitID in thisEncounter["Teams"]["Enemyside"] do
 			if thisEncounter["Units"][unitID]["UnitData"]["DeathStatus"] == "Alive" then
 				teamUnits[unitID] = thisEncounter["Units"][unitID]
@@ -20,7 +19,6 @@ function turnHelper.getAllAliveTeamUnits(desiredTeam, encounterData)
 		end
 	end
 
-	print(teamUnits)
 	return teamUnits
 end
 

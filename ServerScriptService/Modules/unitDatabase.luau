@@ -8,7 +8,8 @@ unitDatabase.DefaultData = {
 		["PlayerID"] = "Unknown",
 		["UnitName"] = "Unknown",
 		["EnemyAI"] = "Unknown",
-		["DeathStatus"] = "Alive"
+		["DeathStatus"] = "Alive",
+		["WorkspaceInstance"] = "Unset"
 	},
 	
 	
@@ -35,7 +36,9 @@ unitDatabase.Enemies = {
 			["UnitType"] = "EnemyAI", -- Player / FriendlyAI / EnemyAI
 			["UnitName"] = "The Test Unit",
 			["EnemyAI"] = "randomChoice",
-			["DeathStatus"] = "Alive"
+			["DeathStatus"] = "Alive",
+			["Model"] = "TestUnit",
+			["WorkspaceInstance"] = "Unset"
 		},
 		
 		["Stats"] = {

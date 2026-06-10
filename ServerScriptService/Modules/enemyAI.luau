@@ -5,7 +5,6 @@ local enemyAI = {}
 -- needs code later for handling ally options
 function enemyAI.randomChoice(potentialActions, enemyOptions)
 	
-	print(potentialActions, enemyOptions)
 	
 	local actionListWithKeyOnName = {} -- list with numberical keys to the actionName of potential actions
 	local key = 1
