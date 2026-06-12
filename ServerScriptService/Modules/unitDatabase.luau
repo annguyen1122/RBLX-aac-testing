@@ -21,6 +21,9 @@ unitDatabase.DefaultData = {
 	["Actions"] = {
 		-- make sure that the future code takes into account the possibility of multiple actions being here and varied possible amounts.
 		["Debug Attack"] = "DebugAttack" --the name is what's put when doing moduleActionsCode[HERE]
+	},
+	["Animations"] = {
+		["Death"] = "placeholderDeath"
 	}
 	
 }
@@ -49,13 +52,65 @@ unitDatabase.Enemies = {
 		["Actions"] = {
 			["Debug Attack"] = "DebugAttack", --the name is what's put when doing moduleActionsCode[HERE]
 			["Skip Turn"] = "SkipTurn"
+		},
+		["Animations"] = {
+			["Death"] = "placeholderDeath"
 		}
 		
 		
+	},
+	
+	
+	["Rat"] = {
+		["UnitData"] = {
+			["UnitType"] = "EnemyAI", -- Player / FriendlyAI / EnemyAI
+			["UnitName"] = "Rat",
+			["EnemyAI"] = "randomChoice",
+			["DeathStatus"] = "Alive",
+			["Model"] = "Rat",
+			["WorkspaceInstance"] = "Unset"
+		},
+
+		["Stats"] = {
+			["Health"] = 50,
+			["MaxHealth"] = 50,
+		},
+
+		["Actions"] = {
+			["Debug Attack"] = "DebugAttack", --the name is what's put when doing moduleActionsCode[HERE]
+			["Skip Turn"] = "SkipTurn"
+		},
+		
+		["Animations"] = {
+			["Death"] = "None",
+		}
+	},
+	
+	["Sword"] = {
+		["UnitData"] = {
+			["UnitType"] = "EnemyAI", -- Player / FriendlyAI / EnemyAI
+			["UnitName"] = "Linked Sword",
+			["EnemyAI"] = "randomChoice",
+			["DeathStatus"] = "Alive",
+			["Model"] = "Sword",
+			["WorkspaceInstance"] = "Unset"
+		},
+
+		["Stats"] = {
+			["Health"] = 100,
+			["MaxHealth"] = 100,
+		},
+
+		["Actions"] = {
+			["Lunge"] = "SwordLunge", --the name is what's put when doing moduleActionsCode[HERE]
+			["Skip Turn"] = "SkipTurn"
+		},
+
+		["Animations"] = {
+			["Death"] = "None",
+			["Idle"] = "swordIdle"
+		}
 	}
-	
-	
-	
 }
 
 
@@ -76,6 +131,10 @@ function unitDatabase.newUnit(type, unitName) --type: i.e Enemies, unitName: int
 	unitCopy["Actions"] = {}
 	for i, v in databaseUnit["Actions"] do
 		unitCopy["Actions"][i] = v
+	end
+	unitCopy["Animations"] = {}
+	for i, v in databaseUnit["Animations"] do
+		unitCopy["Animations"][i] = v
 	end
 	
 	return unitCopy

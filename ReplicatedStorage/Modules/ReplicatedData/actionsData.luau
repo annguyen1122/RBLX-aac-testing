@@ -16,6 +16,10 @@ actionsData.generalActions = {
 	["DebugInstantKill"] = {
 		["actionFunction"] = "debugInstantKill",
 		["actionTargeting"] = "enemyTargeting"
+	},
+	["SwordLunge"] = {
+		["actionFunction"] = "swordLunge",
+		["actionTargeting"] = "enemyTargeting"
 	}
 	
 	

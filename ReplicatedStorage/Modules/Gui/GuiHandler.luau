@@ -15,13 +15,15 @@ function GuiHandler.actionMenu(actionOptions, encounterData)
 		actionButton.Parent = newActionGui.Frame.ScrollingFrame
 		actionButton.Activated:Connect(function()
 			if newActionGui.Frame:FindFirstChild("submenuTargeting") then
-				closeSubmenuTargeting()
+				GuiHandler.closeSubmenuTargeting()
+				GuiHandler.closeHighlightTargeting(encounterData)
 			else
 				local targetOptions
 				if moduleActionsData.generalActions[actionInternalName]["actionTargeting"] == "enemyTargeting" then
 					targetOptions = moduleTurnHelper.getAllAliveTeamUnits("Enemyside", encounterData)
 				end
 				openSubmenuTargeting(targetOptions, actionInternalName)
+				openHighlightTargeting(targetOptions, actionInternalName)
 			end
 		end)
 	end
@@ -53,9 +55,53 @@ end
 -- later rewrite this, maybe a better approach might be to instead call the server for validtargets data and handle the gui locally, instead of passing the values to server to pass back to client with more data.
 -- oh and properly rename validtargets to be validenemytargets
 
-function closeSubmenuTargeting()
+--alternative to submenu targeting, click enemies directly.
+function openHighlightTargeting(validTargets, actionInternalName)
+
+
+	for targetId,targetData in validTargets do
+		local targetWorkspaceInstance = targetData["UnitData"]["WorkspaceInstance"]
+		
+		local newHighlight = Instance.new("Highlight")
+		newHighlight.FillTransparency = 1
+		newHighlight.Parent = targetWorkspaceInstance
+		
+		local newClickDetector = Instance.new("ClickDetector")
+		newClickDetector.MaxActivationDistance = 999999
+		newClickDetector.Parent = targetWorkspaceInstance
+		
+		newClickDetector.MouseClick:Connect(function()
+			game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireServer("performAction", actionInternalName, targetId)
+		end)
+		
+		newClickDetector.MouseHoverEnter:Connect(function()
+			newHighlight.FillTransparency = 0.5
+		end)
+		
+		newClickDetector.MouseHoverLeave:Connect(function()
+			newHighlight.FillTransparency = 1
+		end)
+		
+	end
+	
+end
+
+function GuiHandler.closeSubmenuTargeting()
 	local submenu = game.Players.LocalPlayer.PlayerGui.prototypeActionSelect.Frame["submenuTargeting"]
 	submenu:Destroy()
+end
+
+function GuiHandler.closeHighlightTargeting(encounterData)
+	for unitID,unitData in encounterData["Units"] do
+		local targetWorkspaceInstance = unitData["UnitData"]["WorkspaceInstance"]
+		
+		if targetWorkspaceInstance:FindFirstChild("Highlight") then
+			targetWorkspaceInstance:FindFirstChild("Highlight"):Destroy()
+		end
+		if targetWorkspaceInstance:FindFirstChild("ClickDetector") then
+			targetWorkspaceInstance:FindFirstChild("ClickDetector"):Destroy()
+		end
+	end
 end
 
 --assumes actionmenu exists

@@ -1,3 +1,5 @@
+local moduleAnimationFunctions = require(game.ServerScriptService.Modules.animationFunctions)
+
 local actionsCode = {}
 
 
@@ -36,5 +38,16 @@ function actionsCode.debugInstantKill(encounterID, attackerData, defenderData)
 	
 end
 
+function actionsCode.swordLunge(encounterID, attackerData, defenderData)
+	local baseDamage = 10
 
+	local finalDamage = (baseDamage)
+
+	defenderData["Stats"]["Health"] -= finalDamage
+
+	moduleAnimationFunctions.swordLungeMirrored(attackerData["UnitData"]["WorkspaceInstance"].Humanoid.Animator)
+	
+	print("sword lunge, resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"])
+	
+end
 return actionsCode

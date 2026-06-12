@@ -27,13 +27,18 @@ game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(functio
 				-- make sure that the future code takes into account the possibility of multiple actions being here and varied possible amounts.
 				["Debug Attack"] = "DebugAttack",
 				["Instant Kill"] = "DebugInstantKill"
+			},
+			["Animations"] = {
+				["Death"] = "placeholderDeath"
 			}
 		},
 		
 		
-		["TestEnemy1"] = moduleUnitDatabase.newUnit("Enemies", "TestUnit"),
-		["TestEnemy2"] = moduleUnitDatabase.newUnit("Enemies", "TestUnit"),
-		["TestEnemy3"] = moduleUnitDatabase.newUnit("Enemies", "TestUnit")
+
+		["LinkedSword1"] = moduleUnitDatabase.newUnit("Enemies", "Sword"),
+		["LinkedSword2"] = moduleUnitDatabase.newUnit("Enemies", "Sword"),
+		["LinkedSword3"] = moduleUnitDatabase.newUnit("Enemies", "Sword"),
+		["ZERAT"] = moduleUnitDatabase.newUnit("Enemies", "Rat"),
 		
 		
 	}
