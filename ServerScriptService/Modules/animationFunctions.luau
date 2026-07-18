@@ -38,6 +38,31 @@ function animationFunctions.swordLungeMirrored(animator)
 	game.Debris:AddItem(animtrack, 5)
 end
 
+function animationFunctions.swordLunge(animator, isMirrored)
+	local animation = Instance.new("Animation")
+	if isMirrored == true then
+		animation.AnimationId = 'rbxassetid://121072191175888'
+	else
+		animation.AnimationId = 'rbxassetid://116166949736082'
+	end
+	local animtrack = animator:LoadAnimation(animation)
+	animtrack:Play()
+	animtrack:GetMarkerReachedSignal("prepare"):Connect(function()
+		local sound = Instance.new("Sound")
+		sound.SoundId = "rbxassetid://12222225"
+		sound.Playing = true
+		sound.Parent = animator.Parent
+	end)
+	animtrack:GetMarkerReachedSignal("lunge"):Connect(function()
+		local sound = Instance.new("Sound")
+		sound.SoundId = "rbxassetid://12222208"
+		sound.Playing = true
+		sound.Parent = animator.Parent
+	end)
+
+	game.Debris:AddItem(animtrack, 5)
+end
+
 function animationFunctions.swordIdle(animator)
 	local animation = Instance.new("Animation")
 	animation.AnimationId = 'rbxassetid://103420326914248'

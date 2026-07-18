@@ -20,6 +20,11 @@ actionsData.generalActions = {
 	["SwordLunge"] = {
 		["actionFunction"] = "swordLunge",
 		["actionTargeting"] = "enemyTargeting"
+	},
+	["ParryStance"] = {
+		["actionFunction"] = "parryStance",
+		["actionTargeting"] = "None",
+		["actionType"] = "Buff"
 	}
 	
 	

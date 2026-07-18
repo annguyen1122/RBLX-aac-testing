@@ -103,6 +103,7 @@ unitDatabase.Enemies = {
 
 		["Actions"] = {
 			["Lunge"] = "SwordLunge", --the name is what's put when doing moduleActionsCode[HERE]
+			["Parry Stance"] = "ParryStance",
 			["Skip Turn"] = "SkipTurn"
 		},
 

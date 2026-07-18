@@ -24,7 +24,8 @@ function TBSystems.startEncounter(baseUnits)
 	createTurnOrder(encounterID)
 	assignTeams(encounterID)
 	summonUnits(encounterID) -- do after teams are assigned
-	endTurn(encounterID)
+	beginNextTurn(encounterID)
+--	endTurn(encounterID)
 end
 
 function createEncounterDatabase(baseUnits)
@@ -35,6 +36,7 @@ function createEncounterDatabase(baseUnits)
 	thisEncounter["Units"] = {}
 	local unitID = 0
 	--individual unit loop
+	-- creates copies of data for the encounter, so it doesnt affect base stats
 	for unitName, storedUnitData in baseUnits do
 
 		-- set default stats to replace, also in case there's a missing stat from the base unit data
@@ -77,29 +79,7 @@ function createEncounterDatabase(baseUnits)
 	return newUUID
 end
 
---sorts the turn so it'll run the proper code for if it's a player or AI
-function TBSystems.unitTurnHandler(encounterID, encounterUnitID)
-	
-	local thisEncounter = TBSystems.encounterData[encounterID]
-	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
-	
-	if unitWhoseTurn["UnitData"]["DeathStatus"] == "Dead" then
-		print("DEAD, SKIP TURN")
-		endTurn(encounterID)
-		return
-	end
-	
-	
-	if unitWhoseTurn["UnitData"]["UnitType"] == "Player" then
-		TBSystems.playerTurn(encounterID, encounterUnitID)
-	elseif unitWhoseTurn["UnitData"]["UnitType"] == "EnemyAI" then
-		enemyTurn(encounterID, encounterUnitID)
-	elseif unitWhoseTurn["UnitData"]["UnitType"] == "FriendlyAI" then
-		print("unimplemented")
-	else
-		error("Invalid Unit Type")
-	end
-end
+
 
 
 function TBSystems.playerTurn(encounterID, encounterUnitID)
@@ -161,7 +141,10 @@ function enemyTurn(encounterID, encounterUnitID)
 
 	local actionFunction = moduleActionsData["generalActions"][actionInternalName]["actionFunction"]
 	
-	
+	print(actionFunction, encounterID, unitWhoseTurn, thisEncounter["Units"][enemyTargetID])
+	if moduleActionsCode[actionFunction] == nil then
+		error("Invalid Action Function")
+	end
 	moduleActionsCode[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][enemyTargetID])
 	
 	
@@ -272,17 +255,44 @@ function beginNextTurn(encounterID)
 	if turnData["TurnOrder"][turnData["CurrentTurn"]] == nil then
 		turnData["CurrentTurn"] = 0
 	end
-	TBSystems.unitTurnHandler(encounterID, turnData["TurnOrder"][turnData["CurrentTurn"]])
+
+	--sorts the turn so it'll run the proper code for if it's a player or AI
+	
+	local encounterUnitID = turnData["TurnOrder"][turnData["CurrentTurn"]]
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
+
+	if unitWhoseTurn["UnitData"]["DeathStatus"] == "Dead" then
+		print("DEAD, SKIP TURN")
+		endTurn(encounterID)
+	else
+		if unitWhoseTurn["UnitData"]["UnitType"] == "Player" then
+			TBSystems.playerTurn(encounterID, encounterUnitID)
+		elseif unitWhoseTurn["UnitData"]["UnitType"] == "EnemyAI" then
+			enemyTurn(encounterID, encounterUnitID)
+		elseif unitWhoseTurn["UnitData"]["UnitType"] == "FriendlyAI" then
+			print("unimplemented")
+		else
+			error("Invalid Unit Type")
+		end
+	end
+
 end
 
 --TODO: make a system just in case the checkvictory fails, cause enemys will infinitly loop their turn if it gets to that point
 function endTurn(encounterID)
 	local thisEncounter = TBSystems.encounterData[encounterID]
 	
-	-- for all units in the encounter
+	-- turn end delay
+	wait(0.5)
+	-- TODO add an info thing here for what enemy did.
+	--maybe add a wait for any long turn anims. oh wait that should be put in the actions themselves. 
+	
+	-- update death status for all units in the encounter
 	for unitID, unitData in thisEncounter["Units"] do
 		deathCheck(encounterID, unitID)
 	end
+	--after death check, check if encounter ended
 	local isEncounterEnd = checkVictory(encounterID)
 	if isEncounterEnd == false then
 		beginNextTurn(encounterID)
@@ -467,3 +477,5 @@ return TBSystems
 -- maybe in the future revamp this whole system to allow for multiple simultaneous encounters, let parties split up or something along those lines. some groundwork for it it there, but only like 10% of it, adjust to make it work if you do plan on doing that
 -- lots of the stuff i just did now with the rendering map, camera, and unit spawning, needs to be changed if you do want to do that
 -- they assume that the stuff are in the one consistent place at 0,0 and in the same workspace spots.
+
+--TODO: fix the reliance of humanoid instances in the unit model

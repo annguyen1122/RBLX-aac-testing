@@ -45,9 +45,20 @@ function actionsCode.swordLunge(encounterID, attackerData, defenderData)
 
 	defenderData["Stats"]["Health"] -= finalDamage
 
-	moduleAnimationFunctions.swordLungeMirrored(attackerData["UnitData"]["WorkspaceInstance"].Humanoid.Animator)
+	if attackerData.UnitData.UnitType == "EnemyAI" then
+		--mirrored varient
+		moduleAnimationFunctions.swordLunge(attackerData["UnitData"]["WorkspaceInstance"].Humanoid.Animator,true)
+	else
+		moduleAnimationFunctions.swordLunge(attackerData["UnitData"]["WorkspaceInstance"].Humanoid.Animator)
+	end
 	
 	print("sword lunge, resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"])
 	
 end
+
+function actionsCode.parryStance(encounterID, attackerData, defenderData)
+	
+end
+
+
 return actionsCode
