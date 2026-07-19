@@ -13,7 +13,7 @@ function actionsCode.debugAttack(encounterID, attackerData, defenderData) --thes
 	
 	defenderData["Stats"]["Health"] -= finalDamage
 	
-	print("resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"])
+	print("Debug Attack: resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"])
 	--todo, add placeholder animation logic, vui, all that fancy stuff.
 	
 end
@@ -32,7 +32,7 @@ function actionsCode.debugInstantKill(encounterID, attackerData, defenderData)
 
 	defenderData["Stats"]["Health"] -= finalDamage
 
-	print("DEATH: resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"])
+	print("Instant Kill: resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"])
 	--todo, add placeholder animation logic, vui, all that fancy stuff.
 
 	
@@ -52,12 +52,13 @@ function actionsCode.swordLunge(encounterID, attackerData, defenderData)
 		moduleAnimationFunctions.swordLunge(attackerData["UnitData"]["WorkspaceInstance"].Humanoid.Animator)
 	end
 	
-	print("sword lunge, resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"])
+	print("Sword Lunge: resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"])
 	
 end
 
 function actionsCode.parryStance(encounterID, attackerData, defenderData)
 	
+	print("Parry Stance: Unfinished")
 end
 
 

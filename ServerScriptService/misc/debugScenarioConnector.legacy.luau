@@ -23,7 +23,6 @@ game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(functio
 			},
 
 			["Actions"] = {
-				-- make sure that the future code takes into account the possibility of multiple actions being here and varied possible amounts.
 				["Debug Attack"] = "DebugAttack",
 				["Instant Kill"] = "DebugInstantKill",
 				["Sword Lunge"] = "SwordLunge"
@@ -39,13 +38,13 @@ game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(functio
 	if err then
 		print(err)
 	else
-		modulePlayerStats.AssignClassStats(triggeringPlayer.UserId, "DebugClass")
+		modulePlayerStats.AssignClassStats(triggeringPlayer.UserId, "Blademaster")
 	end
 	
 	local testPlayer = modulePlayerStats.GetPlayerUnitStats(triggeringPlayer.UserId)
 	
-	print(testPlayer)
-	print(oldTestPlayer)
+	--print(testPlayer)
+	--print(oldTestPlayer)
 	
 	local baseUnits = {
 
@@ -59,6 +58,6 @@ game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(functio
 	}
 	
 	local encounterID = moduleTBSystems.startEncounter(baseUnits)
-	moduleTBSystems.debugDisplayEncounter(encounterID)
+	--moduleTBSystems.debugDisplayEncounter(encounterID)
 	
 end)

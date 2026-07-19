@@ -63,9 +63,15 @@ function animationFunctions.swordLunge(animator, isMirrored)
 	game.Debris:AddItem(animtrack, 5)
 end
 
-function animationFunctions.swordIdle(animator)
+function animationFunctions.swordIdle(animator, isMirrored)
 	local animation = Instance.new("Animation")
-	animation.AnimationId = 'rbxassetid://103420326914248'
+	
+	if isMirrored == true then
+		animation.AnimationId = 'rbxassetid://103420326914248'
+	else
+		animation.AnimationId = 'rbxassetid://91973630403819'
+	end
+
 	local animtrack = animator:LoadAnimation(animation)
 	animtrack:Play()
 	

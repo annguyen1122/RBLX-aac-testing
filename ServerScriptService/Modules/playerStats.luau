@@ -1,4 +1,5 @@
 local moduleClassData = require(game.ServerScriptService.Modules.classData)
+local moduleItemsData = require(game.ServerScriptService.Modules.ItemsData)
 
 local playerStats = {}
 
@@ -36,6 +37,11 @@ function playerStats.CreateBaseStats(PlayerID)
 	playerStats.SavedPlayerStats[PlayerID]["Abilities"]["ClassAbilities"] = {}
 	playerStats.SavedPlayerStats[PlayerID]["Abilities"]["EquipmentAbilities"] = {} -- clears and reassigns whenever a weapon or armor is unequipped.
 	
+	playerStats.SavedPlayerStats[PlayerID]["Inventory"] = {}
+	
+	playerStats.SavedPlayerStats[PlayerID]["Equipped"] = {}
+	playerStats.SavedPlayerStats[PlayerID]["Equipped"]["PrimaryWeapon"] = {}
+	
 end
 
 function playerStats.ModifyStat(PlayerID, StatName)
@@ -44,7 +50,7 @@ end
 
 function playerStats.AssignClassStats(PlayerID, Class)
 	local thisPlayerStats = playerStats.SavedPlayerStats[PlayerID]
-	local thisClassData = moduleClassData.PlayerClasses["DebugClass"]
+	local thisClassData = moduleClassData.PlayerClasses[Class]
 	
 	thisPlayerStats["BaseStats"] = {}
 	
@@ -67,6 +73,17 @@ function playerStats.AssignClassStats(PlayerID, Class)
 	for abilityName, abilityID in thisClassData["ClassAbilities"] do
 		thisPlayerStats["Abilities"]["ClassAbilities"][abilityName] = abilityID
 	end
+	
+	--TODO: later change the abilities to update with a seperate function, whenever the weapon is changed. call that function here. Same goes with the animation stuff you did earlier that you left as placeholder
+	local primaryWeaponID = thisClassData["BaseEquipment"]["PrimaryWeapon"]
+	thisPlayerStats["Equipped"]["PrimaryWeapon"] = primaryWeaponID
+	if moduleItemsData.Weapons[primaryWeaponID] then
+		for abilityName, abilityID in moduleItemsData.Weapons[primaryWeaponID]["EquipmentAbilities"] do
+			thisPlayerStats["Abilities"]["EquipmentAbilities"][abilityName] = abilityID
+		end
+	end
+	
+	
 end
 
 -- for use in encounters, in the TBSystems
@@ -88,18 +105,21 @@ function playerStats.GetPlayerUnitStats(PlayerID)
 			["Health"] = thisPlayerStats["BaseStats"]["MainStats"]["MaxHealth"]
 		},
 		["Animations"] = {
-			["Death"] = "placeholderDeath" -- TODO: replace this later
+			["Death"] = "placeholderDeath", -- TODO: replace this later
+			["Idle"] = "swordIdle" -- also replace later
 		}
 	}
 	
 	returningPlayerUnitStats["Actions"] = {}
 	-- later can add different code for each subsection, for now just treat all equally.
-	print(thisPlayerStats["Abilities"])
 	for i, subSection in thisPlayerStats["Abilities"] do
 		for abilityName, abilityID in subSection do
 			returningPlayerUnitStats["Actions"][abilityName] = abilityID 
 		end
 	end
+	
+	returningPlayerUnitStats["Equipment"] = {}
+	returningPlayerUnitStats["Equipment"]["PrimaryWeapon"] = thisPlayerStats["Equipped"]["PrimaryWeapon"]
 	
 	return returningPlayerUnitStats
 	

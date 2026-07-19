@@ -8,6 +8,7 @@ local moduleEnemyAi = require(game.ServerScriptService.Modules.enemyAI)
 local moduleActionsData = require(game.ReplicatedStorage.Modules.ReplicatedData.actionsData)
 local moduleTurnHelper = require(game.ReplicatedStorage.Modules.helpers.turnHelper)
 local moduleAnimationFunctions = require(game.ServerScriptService.Modules.animationFunctions)
+local moduleItemsData = require(game.ServerScriptService.Modules.ItemsData)
 
 local TBSystems = {}
 
@@ -26,6 +27,8 @@ function TBSystems.startEncounter(baseUnits)
 	summonUnits(encounterID) -- do after teams are assigned
 	beginNextTurn(encounterID)
 --	endTurn(encounterID)
+
+	return encounterID
 end
 
 function createEncounterDatabase(baseUnits)
@@ -67,12 +70,21 @@ function createEncounterDatabase(baseUnits)
 		end
 		--TODO: make the values in the default be the fallback if values are wrong
 		
-		print(storedUnitData)
+		--print(storedUnitData)
 		newUnitData["Animations"] = {}
 		for animationInternalName, animationFunction in storedUnitData["Animations"] do
 			newUnitData["Animations"][animationInternalName] = animationFunction
 		end
 
+		if storedUnitData["Equipment"] then
+			newUnitData["Equipment"] = {}
+			for equipmentType, equipmentID in storedUnitData["Equipment"] do
+				newUnitData["Equipment"][equipmentType] = equipmentID
+			end
+		else
+			print("ERROR: Base unit does not have equipment data")
+		end
+			
 		--to have a serial unitID so identical unit types dont overlap with each other
 		unitID += 1
 	end
@@ -141,7 +153,7 @@ function enemyTurn(encounterID, encounterUnitID)
 
 	local actionFunction = moduleActionsData["generalActions"][actionInternalName]["actionFunction"]
 	
-	print(actionFunction, encounterID, unitWhoseTurn, thisEncounter["Units"][enemyTargetID])
+	--print(actionFunction, encounterID, unitWhoseTurn, thisEncounter["Units"][enemyTargetID])
 	if moduleActionsCode[actionFunction] == nil then
 		error("Invalid Action Function")
 	end
@@ -383,52 +395,63 @@ end
 
 --this function only runs after teams are assigned, TODO: add a failsafe for this if it's not the case
 function summonUnits(encounterID)
-	local thisEncounter = TBSystems.encounterData[encounterID]
 	
 	local unitsStorage = Instance.new("Folder")
 	unitsStorage.Name = "Units"
 	unitsStorage.Parent = game.Workspace
+
 	
-	local combatPlate = game.Workspace.combatPlate
-	local enemySpawn = combatPlate.basePlate.enemyLine
-	local playerSpawn = combatPlate.basePlate.playerLine
+	loadingPlayerUnits(encounterID)
+	loadingEnemyUnits(encounterID)
+end
+
+function loadingPlayerUnits(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	local unitsStorage = game.Workspace:FindFirstChild("Units")
 	
+	local playerSpawn = game.Workspace.combatPlate.basePlate.playerLine
+
 	local playerUnitsStorage = Instance.new("Folder")
 	playerUnitsStorage.Name = "PlayerUnits"
 	playerUnitsStorage.Parent = unitsStorage
+	
+	local rotationDegrees = 270
+	
 	local spawnIndex = 1
 	for nameUnitID, unitID in thisEncounter["Teams"]["Playerside"] do
 		local thisUnit = thisEncounter["Units"][unitID]
 		if thisEncounter["Units"][unitID]["UnitData"]["UnitType"] == "Player" then
 			local thisPlayer = PlayersService:GetPlayerByUserId(thisUnit["UnitData"]["PlayerID"])
-			
-			print(thisPlayer, "Spawn"..spawnIndex)
-			
+
+			--print(thisPlayer, "Spawn"..spawnIndex)
+
+			-- creates player copy
 			local playerCopy = game.ServerStorage.Models.UnitModels.placeholderUnit:Clone()
-			playerCopy:PivotTo(playerSpawn["Spawn"..spawnIndex].WorldCFrame * CFrame.Angles(0, math.rad(270), 0))
 			local humanoidDescription = thisPlayer.Character.Humanoid:GetAppliedDescription()
 			playerCopy.Parent = playerUnitsStorage
 			playerCopy.Humanoid:ApplyDescriptionAsync(humanoidDescription)
-			playerCopy.HumanoidRootPart.Anchored = true
-			
-			thisEncounter["Units"][unitID]["UnitData"]["WorkspaceInstance"] = playerCopy
-			
-			local animationFunctionName = thisUnit["Animations"]["Idle"] or nil
-			if animationFunctionName then
-				moduleAnimationFunctions[animationFunctionName](playerCopy.Humanoid.Animator)
-			else
-				print("ERROR: Invalid Animation Name")
-			end
-			
-			
+
+			loadSingleUnit(encounterID, playerCopy, spawnIndex, playerSpawn, playerUnitsStorage, unitID, rotationDegrees)
+
 			spawnIndex += 1
 		end
 	end
+
+end
+
+function loadingEnemyUnits(encounterID)
+
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	local unitsStorage = game.Workspace:FindFirstChild("Units")
 	
-	
+	local enemySpawn = game.Workspace.combatPlate.basePlate.enemyLine
+
 	local enemyUnitsStorage = Instance.new("Folder")
 	enemyUnitsStorage.Name = "EnemyUnits"
 	enemyUnitsStorage.Parent = unitsStorage
+	
+	local rotationDegrees = 90
+	
 	local spawnIndex = 1
 	for nameUnitID, unitID in thisEncounter["Teams"]["Enemyside"] do
 		local thisUnit = thisEncounter["Units"][unitID]
@@ -440,23 +463,62 @@ function summonUnits(encounterID)
 			end
 			local physicalUnit = unitModel:Clone()
 
-			
-			physicalUnit:PivotTo(enemySpawn["Spawn"..spawnIndex].WorldCFrame * CFrame.Angles(0, math.rad(90), 0))
-			physicalUnit.Parent = enemyUnitsStorage
-			physicalUnit.HumanoidRootPart.Anchored = true
-			
-			thisEncounter["Units"][unitID]["UnitData"]["WorkspaceInstance"] = physicalUnit
-			
-			local animationFunctionName = thisUnit["Animations"]["Idle"] or nil
-			print(animationFunctionName)
-			if animationFunctionName then
-				moduleAnimationFunctions[animationFunctionName](physicalUnit.Humanoid.Animator)
-			else
-				print("ERROR: Invalid Animation Name")
-			end
-			
+			loadSingleUnit(encounterID, physicalUnit, spawnIndex, enemySpawn, enemyUnitsStorage, unitID, rotationDegrees)
+
 			spawnIndex += 1
 		end
+	end
+
+end
+
+-- puts the common parts of both enemy and player unit loading into one function so i dont have to constantly change both. helps with the extra stuff to load i'm about to add.
+function loadSingleUnit(encounterID, unitCopy, spawnIndex, spawnPlatform, storageLocation, unitID, rotationDegrees)
+	
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	
+	-- for placing the workspace instance in the right spot
+	unitCopy:PivotTo(spawnPlatform["Spawn"..spawnIndex].WorldCFrame * CFrame.Angles(0, math.rad(rotationDegrees), 0))
+	unitCopy.Parent = storageLocation
+	unitCopy.HumanoidRootPart.Anchored = true
+	
+	-- update encounter data to reference to this unit
+	thisEncounter["Units"][unitID]["UnitData"]["WorkspaceInstance"] = unitCopy
+
+	-- set idle animation
+	local animationFunctionName = thisEncounter["Units"][unitID]["Animations"]["Idle"]
+	--print(animationFunctionName)
+	if animationFunctionName then
+		
+		--mirror if enemy
+		print(thisEncounter["Units"][unitID]["UnitData"]["UnitType"])
+		if thisEncounter["Units"][unitID]["UnitData"]["UnitType"] == "EnemyAI" then
+			moduleAnimationFunctions[animationFunctionName](unitCopy.Humanoid.Animator, true)
+		else
+			moduleAnimationFunctions[animationFunctionName](unitCopy.Humanoid.Animator)
+		end
+	else
+		print("ERROR: Invalid Animation Name")
+	end
+	
+	-- loading equipment models if specified in unitdata
+	print(thisEncounter["Units"][unitID])
+	if thisEncounter["Units"][unitID]["Equipment"] and thisEncounter["Units"][unitID]["Equipment"]["PrimaryWeapon"] then
+		
+		-- primary weapon
+		local primaryWeaponID = thisEncounter["Units"][unitID]["Equipment"]["PrimaryWeapon"]
+		local primaryWeaponData = moduleItemsData.Weapons[primaryWeaponID]
+		local primaryWeaponModelCopy, holdType = primaryWeaponData["ModelData"]["WorkspaceModel"]:Clone(), primaryWeaponData["ModelData"]["HoldType"]
+		print(primaryWeaponModelCopy)
+		primaryWeaponModelCopy.Name = holdType
+		primaryWeaponModelCopy.Parent = unitCopy
+		
+		local m6d = Instance.new("Motor6D")
+		m6d.Parent = unitCopy.Torso
+		m6d.Part0 = unitCopy.Torso
+		m6d.Part1 = primaryWeaponModelCopy
+		
+	else
+		print("ERROR: Encounter unit does not have equipment data")
 	end
 	
 end
