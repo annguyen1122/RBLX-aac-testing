@@ -121,6 +121,11 @@ function playerStats.GetPlayerUnitStats(PlayerID)
 	returningPlayerUnitStats["Equipment"] = {}
 	returningPlayerUnitStats["Equipment"]["PrimaryWeapon"] = thisPlayerStats["Equipped"]["PrimaryWeapon"]
 	
+	returningPlayerUnitStats["AbilityScores"] = {}
+	for i, v in thisPlayerStats["BaseStats"]["AbilityScores"] do
+		returningPlayerUnitStats["AbilityScores"][i] = v
+	end
+	
 	return returningPlayerUnitStats
 	
 end

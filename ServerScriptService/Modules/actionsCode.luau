@@ -9,11 +9,12 @@ function actionsCode.debugAttack(encounterID, attackerData, defenderData) --thes
 	-- supposed to do the base damage to the defender based off attacker's stats.
 	local baseDamage = 10
 	
-	local finalDamage = (baseDamage) --damage calculation if want to change later lol
+	local strengthMult = (attackerData["AbilityScores"]["Strength"] * 0.1)
+	local finalDamage = (baseDamage * strengthMult) --damage calculation if want to change later lol
 	
 	defenderData["Stats"]["Health"] -= finalDamage
 	
-	print("Debug Attack: resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"])
+	print("Debug Attack: resulting health = ", defenderData["Stats"]["Health"], "attacker: ", attackerData["UnitData"]["UnitName"], "defender: ", defenderData["UnitData"]["UnitName"], "Damage: ", finalDamage)
 	--todo, add placeholder animation logic, vui, all that fancy stuff.
 	
 end

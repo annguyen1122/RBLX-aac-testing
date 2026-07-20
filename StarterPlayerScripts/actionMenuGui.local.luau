@@ -1,4 +1,4 @@
-
+--
 local moduleGuiHandler = require(game.ReplicatedStorage.Modules.Gui.GuiHandler)
 
 game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnClientEvent:Connect(function(request, arg1, arg2)
@@ -8,7 +8,7 @@ game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnClientEvent:Connect(functio
 		local encounterData = arg2
 		moduleGuiHandler.actionMenu(actionsData, encounterData)
 	elseif request == "closeActionMenu" then
-		local encounterData = arg
+		local encounterData = arg1
 		moduleGuiHandler.closeActionMenu()
 		moduleGuiHandler.closeHighlightTargeting(encounterData)
 	elseif request == "respondValidTargets" then

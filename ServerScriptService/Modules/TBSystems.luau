@@ -9,9 +9,10 @@ local moduleActionsData = require(game.ReplicatedStorage.Modules.ReplicatedData.
 local moduleTurnHelper = require(game.ReplicatedStorage.Modules.helpers.turnHelper)
 local moduleAnimationFunctions = require(game.ServerScriptService.Modules.animationFunctions)
 local moduleItemsData = require(game.ServerScriptService.Modules.ItemsData)
+local moduleMapHandler = require(game.ServerScriptService.Modules.MapHandler)
 
 local TBSystems = {}
-
+--blap huh?
 --todo, split the encounter data storage from this system thing to a different module script
 TBSystems.encounterData = {}
 
@@ -20,8 +21,8 @@ function TBSystems.startEncounter(baseUnits)
 	local encounterID = createEncounterDatabase(baseUnits)
 	
 	--loadMap(newUUID, "Crossroads", "CrossroadsVariation1")
-	loadMapFromCategory(encounterID, "Crossroads")
-	setPlayersCamera(encounterID)
+	moduleMapHandler.loadMapFromCategory("Crossroads")
+	moduleMapHandler.setPlayersCamera(TBSystems.encounterData[encounterID]["Units"])
 	createTurnOrder(encounterID)
 	assignTeams(encounterID)
 	summonUnits(encounterID) -- do after teams are assigned
@@ -46,43 +47,19 @@ function createEncounterDatabase(baseUnits)
 		thisEncounter["Units"][unitID] = {}
 		local dataTemplate = moduleUnitDatabase.DefaultData
 		local newUnitData = thisEncounter["Units"][unitID]
-
-		--print(unitID, newUnitData, storedUnitData) --debug
-
-		newUnitData["UnitData"] = {}
-		for unitDataName, unitDataValue in storedUnitData["UnitData"] do
-			newUnitData["UnitData"][unitDataName] = unitDataValue
-		end
-		--TODO: same issue as below, fallback systems
-
-		-- individual stats loop
-		-- replaces default stats for corresponding stat on the inputted unit data
-		newUnitData["Stats"] = {}
-		for statName, statValue in storedUnitData["Stats"] do
-			newUnitData["Stats"][statName] = statValue
-		end
-		--TODO: add a fallback system if the newunitdata stats are missing stuff. for now we're assuming it has the same stuff as the default to cause errors to catch if the stats inputted are wrong.
-
-		--copies storedUnitData[actions] to newunitdata
-		newUnitData["Actions"] = {}
-		for actionName, actionInternalName in storedUnitData["Actions"] do
-			newUnitData["Actions"][actionName] = actionInternalName
-		end
-		--TODO: make the values in the default be the fallback if values are wrong
 		
-		--print(storedUnitData)
-		newUnitData["Animations"] = {}
-		for animationInternalName, animationFunction in storedUnitData["Animations"] do
-			newUnitData["Animations"][animationInternalName] = animationFunction
-		end
-
-		if storedUnitData["Equipment"] then
-			newUnitData["Equipment"] = {}
-			for equipmentType, equipmentID in storedUnitData["Equipment"] do
-				newUnitData["Equipment"][equipmentType] = equipmentID
+		
+		-- replacement for the other copy system, with also expected categories so i can catch when there's a missing or extra category
+		local expectedCategories = {"UnitData", "Stats", "Actions", "Animations", "Equipment", "AbilityScores"}	
+		for i, v in expectedCategories do
+			newUnitData[v] = {}
+			if storedUnitData[v] then
+				for j, k in storedUnitData[v] do
+					newUnitData[v][j] = k
+				end
+			else
+				warn("ERROR: Base unit does not have ", v, " data.") -- TODO: later figure out exceptions instead of this faulty print statement
 			end
-		else
-			print("ERROR: Base unit does not have equipment data")
 		end
 			
 		--to have a serial unitID so identical unit types dont overlap with each other
@@ -178,55 +155,6 @@ function assignTeams(encounterID)
 		end
 	end
 end
-
-
---replacing this code with a different system, grouping the units into teams in the dictionary instead of getting it every time. the teams will be passed to client to make it easier, but i need to make sure to validate it.
-
---function getValidTargets(encounterID, encounterUnitID, attackInternalName)
---	local thisEncounter = TBSystems.encounterData[encounterID]
---	print(thisEncounter)
---	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
-	
---	local attackData = moduleActionsData.generalActions[attackInternalName]
-	
---	local validTargets
---	if attackData["actionTargeting"] == "enemyTargeting" then
---		validTargets = getValidEnemyTargets(encounterID, encounterUnitID)
---	end
-	
---	return validTargets
---end
-
---function getValidEnemyTargets(encounterID, encounterUnitID)
---	local thisEncounter = TBSystems.encounterData[encounterID]
---	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
-	
---	if unitWhoseTurn["UnitData"]["UnitType"] == "Player" or unitWhoseTurn["UnitData"]["UnitType"] == "FriendlyAI" then
---		local validTargetList = {}
---		for unitID, unitData in thisEncounter["Units"] do
---			if unitData["UnitData"]["UnitType"] == "EnemyAI" then
---				validTargetList[unitID] = thisEncounter["Units"][unitID] 
---			end
---		end
-		
---		return validTargetList
-		
---	elseif unitWhoseTurn["UnitData"]["UnitType"] == "EnemyAI" then
-		
---		--TODO
---		local validTargetList = {}
---		for unitID, unitData in thisEncounter["Units"] do
---			if unitData["UnitData"]["UnitType"] == "Player" or unitWhoseTurn["UnitData"]["UnitType"] == "FriendlyAI" then
---				validTargetList[unitID] = thisEncounter["Units"][unitID]
---			end
---		end
-
---		return validTargetList
-
---	end
---end
-
-
 
 
 function TBSystems.debugDisplayEncounter(encounterUID)
@@ -362,36 +290,6 @@ function checkVictory(encounterID)
 	return isEncounterEnd
 end
 
-function loadMap(encounterID, mapCategory, mapName)
-	local newMap = game.ServerStorage.Maps[mapCategory][mapName]:Clone()
-	newMap.Parent = game.Workspace.CurrentMap
-end
-
-function loadMapFromCategory(encounterID, mapCategory)
-	local mapList = game.ServerStorage.Maps[mapCategory]:GetChildren()
-	local selectedMap = mapList[math.random(1, #mapList)]
-	local loadedMap = selectedMap:Clone()
-	loadedMap.Parent = game.Workspace.CurrentMap
-end
-
---technically unloads all maps, but only one map should be loaded at a time
-function unloadCurrentMap()
-	for i, v in game.Workspace.CurrentMap:GetChildren() do
-		v:Destroy()
-	end
-end
-
-function setPlayersCamera(encounterID)
-	local thisEncounter = TBSystems.encounterData[encounterID]
-	
-	for unitID, unitData in thisEncounter["Units"] do
-		if unitData["UnitData"]["UnitType"] == "Player" then
-			local thisPlayer = PlayersService:GetPlayerByUserId(unitData["UnitData"]["PlayerID"])
-			game.ReplicatedStorage.RemoteEvents.Gui.setCamera:FireClient(thisPlayer)
-		end
-	end
-	
-end
 
 --this function only runs after teams are assigned, TODO: add a failsafe for this if it's not the case
 function summonUnits(encounterID)
@@ -458,7 +356,7 @@ function loadingEnemyUnits(encounterID)
 		if thisEncounter["Units"][unitID]["UnitData"]["UnitType"] == "EnemyAI" then
 			local unitModel = game.ServerStorage.Models.UnitModels:FindFirstChild(thisUnit["UnitData"]["Model"])
 			if not unitModel then
-				print("ERROR: Unit Model Missing")
+				warn("ERROR: Unit Model Missing")
 				continue -- TODO: add a fallback unit model
 			end
 			local physicalUnit = unitModel:Clone()
@@ -497,7 +395,7 @@ function loadSingleUnit(encounterID, unitCopy, spawnIndex, spawnPlatform, storag
 			moduleAnimationFunctions[animationFunctionName](unitCopy.Humanoid.Animator)
 		end
 	else
-		print("ERROR: Invalid Animation Name")
+		warn("ERROR: Invalid Animation Name")
 	end
 	
 	-- loading equipment models if specified in unitdata
@@ -518,8 +416,13 @@ function loadSingleUnit(encounterID, unitCopy, spawnIndex, spawnPlatform, storag
 		m6d.Part1 = primaryWeaponModelCopy
 		
 	else
-		print("ERROR: Encounter unit does not have equipment data")
+		warn("ERROR: Encounter unit does not have equipment data")
 	end
+	
+	-- load stat display
+	local statDisplay = game.ServerStorage.Misc.StatDisplay:Clone()
+	statDisplay:PivotTo(unitCopy:GetPivot())
+	statDisplay.Parent = unitCopy
 	
 end
 
@@ -529,7 +432,7 @@ end
 
 function endEncounter(encounterID)
 	
-	unloadCurrentMap()
+	moduleMapHandler.unloadCurrentMap()
 	TBSystems.encounterData[encounterID] = nil
 	unloadAllUnits()
 end
@@ -540,4 +443,4 @@ return TBSystems
 -- lots of the stuff i just did now with the rendering map, camera, and unit spawning, needs to be changed if you do want to do that
 -- they assume that the stuff are in the one consistent place at 0,0 and in the same workspace spots.
 
---TODO: fix the reliance of humanoid instances in the unit model
+--TODO: fix the reliance of humanoid instances in animators, and checks for player model since humanoid is required for that
