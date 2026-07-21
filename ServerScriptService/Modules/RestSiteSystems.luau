@@ -8,7 +8,7 @@ local RestSiteSystems = {}
 
 
 -- not going to be that useful since i think i might just have the same camera angle for both
-function setPlayersCamera()
+function setAllPlayersCamera()
 
 	for playerID, playerData in modulePlayerStats.SavedPlayerStats do
 		local thisPlayer = PlayersService:GetPlayerByUserId(playerID)
@@ -17,7 +17,11 @@ function setPlayersCamera()
 
 end
 
-
+function RestSiteSystems.loadRestSiteAllPlayers()
+	setAllPlayersCamera()
+	
+	
+end
 
 
 return RestSiteSystems

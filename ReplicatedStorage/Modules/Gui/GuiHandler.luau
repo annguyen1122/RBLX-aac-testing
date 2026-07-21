@@ -109,7 +109,20 @@ function GuiHandler.closeActionMenu()
 	game.Players.LocalPlayer.PlayerGui.prototypeActionSelect:Destroy()
 end
 
+
+function GuiHandler.loadRouteChoices()
+	local newActionGui = game.ReplicatedStorage.Gui.RouteChoices:Clone()
+	
+	local actionButton = newActionGui.Frame.Option
+	actionButton.Activated:Connect(function()
+		
+		
+	end)
+	
+	newActionGui.Parent =  game.Players.LocalPlayer.PlayerGui
+
+end
+
+
 return GuiHandler
-
-
 --later when you're not busy, go through each of these possible inputs and make sure exploits aren't possible
