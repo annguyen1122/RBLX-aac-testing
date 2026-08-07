@@ -17,11 +17,13 @@ function setAllPlayersCamera()
 
 end
 
-function RestSiteSystems.loadRestSiteAllPlayers()
+function RestSiteSystems.loadRestSiteMapAllPlayers()
 	setAllPlayersCamera()
-	
-	
+	moduleMapHandler.loadMap("RestSite")
 end
 
+function RestSiteSystems.unloadRestSiteMap()
+	moduleMapHandler.unloadCurrentMap()
+end
 
 return RestSiteSystems

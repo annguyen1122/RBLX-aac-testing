@@ -10,14 +10,17 @@ local moduleTurnHelper = require(game.ReplicatedStorage.Modules.helpers.turnHelp
 local moduleAnimationFunctions = require(game.ServerScriptService.Modules.animationFunctions)
 local moduleItemsData = require(game.ServerScriptService.Modules.ItemsData)
 local moduleMapHandler = require(game.ServerScriptService.Modules.MapHandler)
+local moduleEncounterList = require(game.ServerScriptService.Modules.EncounterList)
+local modulePlayerStats = require(game.ServerScriptService.Modules.playerStats)
 
 local TBSystems = {}
 --blap huh?
 --todo, split the encounter data storage from this system thing to a different module script
 TBSystems.encounterData = {}
 
-function TBSystems.startEncounter(baseUnits)
+function TBSystems.startEncounter(encounterListId)
 	
+	local baseUnits = loadEncounterBaseUnits(encounterListId)
 	local encounterID = createEncounterDatabase(baseUnits)
 	
 	--loadMap(newUUID, "Crossroads", "CrossroadsVariation1")
@@ -26,10 +29,48 @@ function TBSystems.startEncounter(baseUnits)
 	createTurnOrder(encounterID)
 	assignTeams(encounterID)
 	summonUnits(encounterID) -- do after teams are assigned
-	beginNextTurn(encounterID)
---	endTurn(encounterID)
+	--beginNextTurn(encounterID)
+	
+	turnLoop(encounterID)
 
-	return encounterID
+
+--	endTurn(encounterID)
+	
+	print("ENCOUNTER END")
+	return true
+end
+
+function turnLoop(encounterID)
+	beginNextTurn(encounterID)
+	
+	
+	local isEnd = false
+	while isEnd == false do
+		wait(0.5) -- TODO: remove later when more stable, safeguard just incase of infinite loops.
+		isEnd = checkVictory(encounterID)
+		
+		--after death check, check if encounter ended
+		if isEnd == false then
+			beginNextTurn(encounterID)
+		end
+		
+	end
+	
+end
+
+function loadEncounterBaseUnits(encounterListId)
+	local returningBaseUnits = {}
+	local encounterList = moduleEncounterList.EnemyUnits[encounterListId]
+	
+	for unitName, unitData in encounterList do
+		returningBaseUnits[unitName] = moduleUnitDatabase.newUnit(unitData["SideType"], unitData["UnitID"]) --TODO: add a warn if the encounter list unit doesnt have an id or sidetype
+	end
+	
+	for playerID, playerData in modulePlayerStats.SavedPlayerStats do
+		returningBaseUnits[playerID] = modulePlayerStats.GetPlayerUnitStats(playerID)
+	end
+	
+	return returningBaseUnits
 end
 
 function createEncounterDatabase(baseUnits)
@@ -82,22 +123,39 @@ function TBSystems.playerTurn(encounterID, encounterUnitID)
 	
 	-- TODO: need some code here to make sure the event doesnt get assigned twice so that turns dont happen twice when it loops back around
 	local playerActionMenuInput --defines variable before, so the line below can use it inside
-	playerActionMenuInput = game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Connect(function(firedPlayer, RE_request, arg1, arg2)
-		if firedPlayer.UserId == thisPlayer.UserId then -- check for if it's the same player, so multiple players don't conflict with this
-			if RE_request == "performAction" then
-				local actionInternalName = arg1
-				local targetID = arg2
-				--print(actionInternalName)
-				local actionFunction = moduleActionsData["generalActions"][actionInternalName]["actionFunction"]
+	
+	
+	local firedPlayer, RE_request, arg1, arg2
+	firedPlayer, RE_request, arg1, arg2 = game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Wait()
+	
+	while firedPlayer.UserId ~= thisPlayer.UserId and RE_request ~= "performAction" do -- check for if it's the same player, so multiple players don't conflict with this
+		firedPlayer, RE_request, arg1, arg2 = game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Wait()
+	end
+	
+	
+	local actionInternalName = arg1
+	local targetID = arg2
+	
+	local actionFunction = moduleActionsData["generalActions"][actionInternalName]["actionFunction"]
+	
+	moduleActionsCode[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][targetID]) --TODO: add code here to validate if the selections are valid from player input.
+	
+	TBSystems.endPlayerTurn(thisPlayer, encounterID)
+	endTurn(encounterID)
+	
+	--playerActionMenuInput = game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Connect(function(firedPlayer, RE_request, arg1, arg2)
+	--	if firedPlayer.UserId == thisPlayer.UserId and RE_request == "performAction" then -- check for if it's the same player, so multiple players don't conflict with this
+	--		local actionInternalName = arg1
+	--		local targetID = arg2
+	--		--print(actionInternalName)
+	--		local actionFunction = moduleActionsData["generalActions"][actionInternalName]["actionFunction"]
 
-				moduleActionsCode[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][targetID]) --TODO: add code here to validate if the selections are valid from player input.
-				TBSystems.endPlayerTurn(thisPlayer, encounterID)
-				endTurn(encounterID)
-				playerActionMenuInput:Disconnect()
-				
-			end
-		end
-	end)
+	--		moduleActionsCode[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][targetID]) --TODO: add code here to validate if the selections are valid from player input.
+	--		TBSystems.endPlayerTurn(thisPlayer, encounterID)
+	--		endTurn(encounterID)
+	--		playerActionMenuInput:Disconnect()
+	--	end
+	--end)
 	
 end
 --TODO: need some code to make sure exploiters dont attack out of turn, validate inputs to only work if during turn.
@@ -182,24 +240,31 @@ function createTurnOrder(encounterID)
 	thisEncounter["TurnData"]["CurrentTurn"] = 0
 end
 
-function beginNextTurn(encounterID)
+function getNextTurnNumber(encounterID)
 	local thisEncounter = TBSystems.encounterData[encounterID]
-	
+
 	local turnData = thisEncounter["TurnData"]
-	
+
 	turnData["CurrentTurn"] += 1
-	
+
 	--print(turnData["CurrentTurn"], turnData["TurnOrder"][turnData["CurrentTurn"]])
-	
+
 	-- resets turn order once reaches end
 	if turnData["TurnOrder"][turnData["CurrentTurn"]] == nil then
 		turnData["CurrentTurn"] = 0
 	end
+	return turnData["CurrentTurn"]
+end
 
+function beginNextTurn(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	local turnData = thisEncounter["TurnData"]
+	
+	local currentTurnNumber = getNextTurnNumber(encounterID)
+	
 	--sorts the turn so it'll run the proper code for if it's a player or AI
 	
-	local encounterUnitID = turnData["TurnOrder"][turnData["CurrentTurn"]]
-	local thisEncounter = TBSystems.encounterData[encounterID]
+	local encounterUnitID = turnData["TurnOrder"][currentTurnNumber]
 	local unitWhoseTurn = thisEncounter["Units"][encounterUnitID]
 
 	if unitWhoseTurn["UnitData"]["DeathStatus"] == "Dead" then
@@ -216,15 +281,12 @@ function beginNextTurn(encounterID)
 			error("Invalid Unit Type")
 		end
 	end
-
 end
 
 --TODO: make a system just in case the checkvictory fails, cause enemys will infinitly loop their turn if it gets to that point
 function endTurn(encounterID)
 	local thisEncounter = TBSystems.encounterData[encounterID]
 	
-	-- turn end delay
-	wait(0.5)
 	-- TODO add an info thing here for what enemy did.
 	--maybe add a wait for any long turn anims. oh wait that should be put in the actions themselves. 
 	
@@ -232,11 +294,14 @@ function endTurn(encounterID)
 	for unitID, unitData in thisEncounter["Units"] do
 		deathCheck(encounterID, unitID)
 	end
+	
 	--after death check, check if encounter ended
-	local isEncounterEnd = checkVictory(encounterID)
-	if isEncounterEnd == false then
-		beginNextTurn(encounterID)
-	end
+	--local isEncounterEnd = checkVictory(encounterID)
+	--if isEncounterEnd == false then
+	--	beginNextTurn(encounterID)
+	--end
+
+	return --THIS IS THE END OF THE LOOP
 end
 
 --probably split this function later, but it both returns death status, and updates death status.

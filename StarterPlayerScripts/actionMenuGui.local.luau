@@ -19,6 +19,12 @@ game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnClientEvent:Connect(functio
 	
 end)
 
+game.ReplicatedStorage.RemoteEvents.LoadGUI.AllPlayersLoadRouteChoices.OnClientEvent:Connect(function(optionsList)
+	
+	moduleGuiHandler.loadRouteChoices(optionsList)
+	
+	
+end)
 
 
 game.ReplicatedStorage.RemoteEvents.Gui.setCamera.OnClientEvent:Connect(function()

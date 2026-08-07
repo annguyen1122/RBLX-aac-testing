@@ -1,17 +1,8 @@
-local moduleRestSiteSystems = require(game.ServerScriptService.Modules.RestSiteSystems)
+
 local moduleEncounterSystems = require(game.ServerScriptService.Modules.EncounterSystems)
 
-function gameLaunch()
-	
-	
+moduleEncounterSystems.gameLaunch()
 
-	moduleEncounterSystems.JoiningPlayersPlayerList() -- for getting the playerlist
-	
-	moduleRestSiteSystems.loadRestSiteAllPlayers()
-	
-end
-
-gameLaunch()
 -- waiting system for every player to join
 ---- probably a ready system while you're at it
 

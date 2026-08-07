@@ -123,7 +123,16 @@ unitDatabase.Enemies = {
 		},
 		["Equipment"] = {
 			["PrimaryWeapon"] = "LinkedSword"
+		},
+		["AbilityScores"] = {
+			["Strength"] = 10,
+			["Dexterity"] = 10,
+			["Constitution"] = 10,
+			["Intelligence"] = 10,
+			["Wisdom"] = 10,
+			["Charisma"] = 10
 		}
+
 	}
 }
 
@@ -173,7 +182,7 @@ function unitDatabase.newUnit(type, unitName) --type: i.e Enemies, unitName: int
 				unitCopy[v][j] = k
 			end
 		else
-			warn("ERROR: Base unit does not have ", v, " data, using fallback values.") -- TODO: later figure out exceptions instead of this faulty print statement
+			warn("ERROR: Base unit does not have ", v, " data, using fallback values.", unitCopy) -- TODO: later figure out exceptions instead of this faulty print statement
 			for j, k in defaultUnit[v] do
 				unitCopy[v][j] = k
 			end

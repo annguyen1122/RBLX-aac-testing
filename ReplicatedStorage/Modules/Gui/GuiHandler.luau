@@ -110,19 +110,35 @@ function GuiHandler.closeActionMenu()
 end
 
 
-function GuiHandler.loadRouteChoices()
-	local newActionGui = game.ReplicatedStorage.Gui.RouteChoices:Clone()
+--[=[
+choiceOptions - If first arguement is FALSE, then unload the route choices GUI.
+]=]
+function GuiHandler.loadRouteChoices(choiceOptions) 
 	
-	local actionButton = newActionGui.Frame.Option
-	actionButton.Activated:Connect(function()
+	if choiceOptions == false then
+		game.Players.LocalPlayer.PlayerGui:FindFirstChild("RouteChoices"):Destroy()
+		return
+	end
+	
+	local routeChoicesGUI = game.ReplicatedStorage.Gui.RouteChoices:Clone()
+	routeChoicesGUI.Parent = game.Players.LocalPlayer.PlayerGui
+	for i, v in choiceOptions do
+		local newOptionButton = routeChoicesGUI.Frame.SubFrame.Option:Clone()
 		
 		
-	end)
+		newOptionButton.Text = v -- TODO: for now it's just the name, but later make it have the other info. 
+		
+		newOptionButton.Visible = true
+		newOptionButton.Parent = routeChoicesGUI.Frame.SubFrame
+		
+		newOptionButton.Activated:Connect(function()
+			game.ReplicatedStorage.RemoteEvents.playerInput.RouteChoices.VoteRouteChoice:FireServer(v)
+			
+		end)
+		
+	end
 	
-	newActionGui.Parent =  game.Players.LocalPlayer.PlayerGui
-
 end
-
 
 return GuiHandler
 --later when you're not busy, go through each of these possible inputs and make sure exploits aren't possible

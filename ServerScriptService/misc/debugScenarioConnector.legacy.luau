@@ -39,78 +39,25 @@ PlayerService.PlayerAdded:Connect(function(joiningPlayer)
 		warn("Player Data Load Failed", joiningPlayerDataStore)
 	end
 	loadedPlayerDataStore[joiningPlayer.UserId] = joiningPlayerDataStore
+	
+	--print(loadedPlayerDataStore)
+	local thisPlayerDataStore = loadedPlayerDataStore[joiningPlayer.UserId]
+
+	local succ, result = pcall(function()
+		modulePlayerStats.CreateBaseStats(joiningPlayer.UserId)
+	end)
+	if succ then
+		modulePlayerStats.AssignClassStats(joiningPlayer.UserId, thisPlayerDataStore["ChosenClass"])
+	else
+		warn(result)
+	end
 end)
 
 game.ReplicatedStorage.DebugTriggers.debugScenario.OnServerEvent:Connect(function(triggeringPlayer)
 	
-	print(loadedPlayerDataStore)
-	local thisPlayerDataStore = loadedPlayerDataStore[triggeringPlayer.UserId]
-
-	
-	
-	local oldTestPlayer = {
-
-			["UnitData"] = {
-				["UnitType"] = "Player", -- Player / FriendlyAI / EnemyAI,
-				["PlayerID"] = triggeringPlayer.UserId,
-				["UnitName"] = triggeringPlayer.Name,
-				["DeathStatus"] = "Alive"
-			},
 
 
-			["Stats"] = {
-				["MaxHealth"] = 100,
-				["Health"] = 100
-			},
-
-			["Actions"] = {
-				["Debug Attack"] = "DebugAttack",
-				["Instant Kill"] = "DebugInstantKill",
-				["Sword Lunge"] = "SwordLunge"
-			},
-			["Animations"] = {
-				["Death"] = "placeholderDeath"
-			}
-		}
-
-	--local succ, result = pcall(function()
-	--	modulePlayerStats.CreateBaseStats(triggeringPlayer.UserId)
-	--end)
-	--if succ then
-	--	modulePlayerStats.AssignClassStats(triggeringPlayer.UserId, "DebugClass")
-	--else
-	--	print(result)
-	--end
-	
-	
-	local succ, result = pcall(function()
-		modulePlayerStats.CreateBaseStats(triggeringPlayer.UserId)
-	end)
-	if succ then
-		modulePlayerStats.AssignClassStats(triggeringPlayer.UserId, thisPlayerDataStore["ChosenClass"])
-	else
-		print(result)
-	end
-	
-	
-	
-	local testPlayer = modulePlayerStats.GetPlayerUnitStats(triggeringPlayer.UserId)
-	
-	--print(testPlayer)
-	--print(oldTestPlayer)
-	
-	local baseUnits = {
-
-		["TestPlayer"] = testPlayer, -- i dont know why but if you put a space between testplayer, it makes one of the sword units unselectable? figure that bug out later, but we can ignore it for now
-
-		["LinkedSword1"] = moduleUnitDatabase.newUnit("Enemies", "Sword"),
-		["LinkedSword2"] = moduleUnitDatabase.newUnit("Enemies", "Sword"),
-		["LinkedSword3"] = moduleUnitDatabase.newUnit("Enemies", "Sword"),
-		["ZERAT"] = moduleUnitDatabase.newUnit("Enemies", "Rat"),
-		
-	}
-	
-	local encounterID = moduleTBSystems.startEncounter(baseUnits)
+	local encounterID = moduleTBSystems.startEncounter("DebugEncounter")
 	--moduleTBSystems.debugDisplayEncounter(encounterID)
 	
 end)
