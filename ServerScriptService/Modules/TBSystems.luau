@@ -30,6 +30,7 @@ function TBSystems.startEncounter(encounterListId)
 	assignTeams(encounterID)
 	summonUnits(encounterID) -- do after teams are assigned
 	--beginNextTurn(encounterID)
+	loadPlayerGUI(encounterID)
 	
 	turnLoop(encounterID)
 
@@ -56,6 +57,18 @@ function turnLoop(encounterID)
 		
 	end
 	
+end
+
+function loadPlayerGUI(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	
+	print(thisEncounter.Teams)
+	for i, unitID in thisEncounter.Teams.Playerside do
+		local playerId = thisEncounter.Units[unitID]["UnitData"]["PlayerID"]
+		local playerInstance = PlayersService:GetPlayerByUserId(playerId)
+		
+		game.ReplicatedStorage.RemoteEvents.Gui.encounterStart:FireClient(playerInstance)
+	end
 end
 
 function loadEncounterBaseUnits(encounterListId)
@@ -142,20 +155,6 @@ function TBSystems.playerTurn(encounterID, encounterUnitID)
 	
 	TBSystems.endPlayerTurn(thisPlayer, encounterID)
 	endTurn(encounterID)
-	
-	--playerActionMenuInput = game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Connect(function(firedPlayer, RE_request, arg1, arg2)
-	--	if firedPlayer.UserId == thisPlayer.UserId and RE_request == "performAction" then -- check for if it's the same player, so multiple players don't conflict with this
-	--		local actionInternalName = arg1
-	--		local targetID = arg2
-	--		--print(actionInternalName)
-	--		local actionFunction = moduleActionsData["generalActions"][actionInternalName]["actionFunction"]
-
-	--		moduleActionsCode[actionFunction](encounterID, unitWhoseTurn, thisEncounter["Units"][targetID]) --TODO: add code here to validate if the selections are valid from player input.
-	--		TBSystems.endPlayerTurn(thisPlayer, encounterID)
-	--		endTurn(encounterID)
-	--		playerActionMenuInput:Disconnect()
-	--	end
-	--end)
 	
 end
 --TODO: need some code to make sure exploiters dont attack out of turn, validate inputs to only work if during turn.
@@ -295,6 +294,7 @@ function endTurn(encounterID)
 		deathCheck(encounterID, unitID)
 	end
 	
+	updateAllStatDisplay(encounterID)
 	--after death check, check if encounter ended
 	--local isEncounterEnd = checkVictory(encounterID)
 	--if isEncounterEnd == false then
@@ -484,11 +484,26 @@ function loadSingleUnit(encounterID, unitCopy, spawnIndex, spawnPlatform, storag
 		warn("ERROR: Encounter unit does not have equipment data")
 	end
 	
-	-- load stat display
-	local statDisplay = game.ServerStorage.Misc.StatDisplay:Clone()
-	statDisplay:PivotTo(unitCopy:GetPivot())
-	statDisplay.Parent = unitCopy
+	loadStatDisplay(unitCopy)
 	
+end
+
+function loadStatDisplay(workspaceInstance)
+	local statDisplay = game.ReplicatedStorage.Gui.StatDisplay:Clone()
+	statDisplay:PivotTo(workspaceInstance:GetPivot())
+	statDisplay.Parent = workspaceInstance
+end
+
+function updateAllStatDisplay(encounterID)
+	local thisEncounter = TBSystems.encounterData[encounterID]
+	
+	for unitID, unitData in thisEncounter["Units"] do
+		local indivStatDisplay = unitData["UnitData"]["WorkspaceInstance"]:FindFirstChild("StatDisplay")
+		
+		--update Health
+		indivStatDisplay.BillboardGui.Frame.Health.Value.Text = unitData["Stats"]["Health"]
+		
+	end
 end
 
 function unloadAllUnits()

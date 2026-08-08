@@ -58,7 +58,7 @@ function actionsCode.swordLunge(encounterID, attackerData, defenderData)
 end
 
 function actionsCode.parryStance(encounterID, attackerData, defenderData)
-	
+	-- probably set this up so that it defends an ally dragging taunt for that one ally, reflecting one instance of damage?
 	print("Parry Stance: Unfinished")
 end
 

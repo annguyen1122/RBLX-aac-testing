@@ -56,6 +56,7 @@ end
 -- oh and properly rename validtargets to be validenemytargets
 
 --alternative to submenu targeting, click enemies directly.
+--also added more code later for stat display on hover too. TODO: probably change this to an independent thing, so it's not dependent on unit targeting/needing an action hovered.
 function openHighlightTargeting(validTargets, actionInternalName)
 
 
@@ -76,10 +77,16 @@ function openHighlightTargeting(validTargets, actionInternalName)
 		
 		newClickDetector.MouseHoverEnter:Connect(function()
 			newHighlight.FillTransparency = 0.5
+			
+			-- load stat display
+			targetWorkspaceInstance:FindFirstChild("StatDisplay").BillboardGui.Enabled = true
 		end)
 		
 		newClickDetector.MouseHoverLeave:Connect(function()
 			newHighlight.FillTransparency = 1
+			
+			-- load stat display
+			targetWorkspaceInstance:FindFirstChild("StatDisplay").BillboardGui.Enabled = false
 		end)
 		
 	end
@@ -122,22 +129,50 @@ function GuiHandler.loadRouteChoices(choiceOptions)
 	
 	local routeChoicesGUI = game.ReplicatedStorage.Gui.RouteChoices:Clone()
 	routeChoicesGUI.Parent = game.Players.LocalPlayer.PlayerGui
-	for i, v in choiceOptions do
+	for choiceNum, eventId in choiceOptions do
 		local newOptionButton = routeChoicesGUI.Frame.SubFrame.Option:Clone()
 		
 		
-		newOptionButton.Text = v -- TODO: for now it's just the name, but later make it have the other info. 
+		newOptionButton.Text = eventId -- TODO: for now it's just the name, but later make it have the other info. 
 		
 		newOptionButton.Visible = true
 		newOptionButton.Parent = routeChoicesGUI.Frame.SubFrame
 		
 		newOptionButton.Activated:Connect(function()
-			game.ReplicatedStorage.RemoteEvents.playerInput.RouteChoices.VoteRouteChoice:FireServer(v)
+			game.ReplicatedStorage.RemoteEvents.playerInput.RouteChoices.VoteRouteChoice:FireServer(choiceNum)
 			
 		end)
 		
 	end
 	
+end
+
+function GuiHandler.InitializeStatDisplay()
+	local AllPlayerUnits = game.Workspace:FindFirstChild("Units"):FindFirstChild("PlayerUnits"):GetChildren()
+	local AllEnemyUnits = game.Workspace:FindFirstChild("Units"):FindFirstChild("EnemyUnits"):GetChildren()
+	
+	local function linkStatDisplay(workspaceInstance)
+		local newClickDetector = Instance.new("ClickDetector")
+		newClickDetector.MaxActivationDistance = 999999
+		newClickDetector.Parent = workspaceInstance
+
+		local statDisplay = workspaceInstance:WaitForChild("StatDisplay", 5)
+
+		newClickDetector.MouseHoverEnter:Connect(function()
+			statDisplay.BillboardGui.Enabled = true
+		end)
+		newClickDetector.MouseHoverLeave:Connect(function()
+			statDisplay.BillboardGui.Enabled = false
+		end)
+	end
+	
+	for i, workspaceInstance in AllEnemyUnits do
+		linkStatDisplay(workspaceInstance)
+	end
+	
+	for i, workspaceInstance in AllPlayerUnits do
+		linkStatDisplay(workspaceInstance)
+	end
 end
 
 return GuiHandler

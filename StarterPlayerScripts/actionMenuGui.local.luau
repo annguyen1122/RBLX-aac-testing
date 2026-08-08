@@ -26,6 +26,11 @@ game.ReplicatedStorage.RemoteEvents.LoadGUI.AllPlayersLoadRouteChoices.OnClientE
 	
 end)
 
+game.ReplicatedStorage.RemoteEvents.Gui.encounterStart.OnClientEvent:Connect(function()
+	
+	moduleGuiHandler.InitializeStatDisplay()
+	
+end)
 
 game.ReplicatedStorage.RemoteEvents.Gui.setCamera.OnClientEvent:Connect(function()
 	local camera = game.Workspace.Camera
