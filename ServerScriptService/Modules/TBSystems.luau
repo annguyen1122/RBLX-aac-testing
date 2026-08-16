@@ -469,7 +469,7 @@ function loadSingleUnit(encounterID, unitCopy, spawnIndex, spawnPlatform, storag
 		
 		-- primary weapon
 		local primaryWeaponID = thisEncounter["Units"][unitID]["Equipment"]["PrimaryWeapon"]
-		local primaryWeaponData = moduleItemsData.Weapons[primaryWeaponID]
+		local primaryWeaponData = moduleItemsData[primaryWeaponID]
 		local primaryWeaponModelCopy, holdType = primaryWeaponData["ModelData"]["WorkspaceModel"]:Clone(), primaryWeaponData["ModelData"]["HoldType"]
 		print(primaryWeaponModelCopy)
 		primaryWeaponModelCopy.Name = holdType

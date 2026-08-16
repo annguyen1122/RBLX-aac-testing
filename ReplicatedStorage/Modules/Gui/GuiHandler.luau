@@ -57,19 +57,20 @@ end
 
 --alternative to submenu targeting, click enemies directly.
 --also added more code later for stat display on hover too. TODO: probably change this to an independent thing, so it's not dependent on unit targeting/needing an action hovered.
+
 function openHighlightTargeting(validTargets, actionInternalName)
 
-
+	
+	--TODO: disconnect the highlight stuff when disabled since it keeps adding more events to the click detector.
 	for targetId,targetData in validTargets do
+		
 		local targetWorkspaceInstance = targetData["UnitData"]["WorkspaceInstance"]
 		
 		local newHighlight = Instance.new("Highlight")
 		newHighlight.FillTransparency = 1
 		newHighlight.Parent = targetWorkspaceInstance
 		
-		local newClickDetector = Instance.new("ClickDetector")
-		newClickDetector.MaxActivationDistance = 999999
-		newClickDetector.Parent = targetWorkspaceInstance
+		local newClickDetector = targetWorkspaceInstance:FindFirstChild("ClickDetector") -- uses the same click detector from the stat display
 		
 		newClickDetector.MouseClick:Connect(function()
 			game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireServer("performAction", actionInternalName, targetId)
@@ -77,20 +78,12 @@ function openHighlightTargeting(validTargets, actionInternalName)
 		
 		newClickDetector.MouseHoverEnter:Connect(function()
 			newHighlight.FillTransparency = 0.5
-			
-			-- load stat display
-			targetWorkspaceInstance:FindFirstChild("StatDisplay").BillboardGui.Enabled = true
 		end)
 		
 		newClickDetector.MouseHoverLeave:Connect(function()
 			newHighlight.FillTransparency = 1
-			
-			-- load stat display
-			targetWorkspaceInstance:FindFirstChild("StatDisplay").BillboardGui.Enabled = false
 		end)
-		
 	end
-	
 end
 
 function GuiHandler.closeSubmenuTargeting()
@@ -104,9 +97,6 @@ function GuiHandler.closeHighlightTargeting(encounterData)
 		
 		if targetWorkspaceInstance:FindFirstChild("Highlight") then
 			targetWorkspaceInstance:FindFirstChild("Highlight"):Destroy()
-		end
-		if targetWorkspaceInstance:FindFirstChild("ClickDetector") then
-			targetWorkspaceInstance:FindFirstChild("ClickDetector"):Destroy()
 		end
 	end
 end

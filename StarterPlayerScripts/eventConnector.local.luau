@@ -1,5 +1,6 @@
 --
 local moduleGuiHandler = require(game.ReplicatedStorage.Modules.Gui.GuiHandler)
+local modulePlayerLocalInventories = require(game.ReplicatedStorage.Modules.Gui.playerLocalInventories)
 
 game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnClientEvent:Connect(function(request, arg1, arg2)
 	
@@ -38,4 +39,14 @@ game.ReplicatedStorage.RemoteEvents.Gui.setCamera.OnClientEvent:Connect(function
 
 	local cFrame = CFrame.new(Vector3.new(0, 120, 30), Vector3.new(0, 100, 0))
 	camera.CFrame = cFrame
+end)
+
+game.ReplicatedStorage.RemoteEvents.PlayerInventory.UpdatePlayerInventory.OnClientEvent:Connect(function(data)
+	modulePlayerLocalInventories.updatePlayerInventory(data)
+end)
+
+--TODO: make this not send stuff from server to client to server for no reason
+--dumb unneccesary workaround that im going to add for convenience for the system i already set in place
+game.ReplicatedStorage.RemoteEvents.playerInput.ReadyChecks.restSiteEnd.OnClientEvent:Connect(function(isReady)
+	game.ReplicatedStorage.RemoteEvents.playerInput.ReadyChecks.restSiteEnd:FireServer(isReady);
 end)

@@ -40,7 +40,7 @@ classData.PlayerClasses = {
 		},
 		["BaseEquipment"] = {
 			["PrimaryWeapon"] = "LinkedSword",
-			["Inventory"] = {}
+			["Inventory"] = {"DebugItem", "DebugPrimaryWeapon"}
 		},
 		["ClassAbilities"] = {
 			--["Sword Swapping"] --not implemented yet, but later add this as a special ability that lets you swap swords mid-turn. make it a quick action too, probably a low mana cost.

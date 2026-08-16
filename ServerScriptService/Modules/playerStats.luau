@@ -64,7 +64,7 @@ function playerStats.AssignClassStats(PlayerID, Class)
 
 
 	thisPlayerStats["BaseStats"]["MainStats"] = {}
-	thisPlayerStats["BaseStats"]["MainStats"]["MaxHealth"] = ((thisPlayerStats["BaseStats"]["AbilityScores"]["Constitution"]) * 10) -- Max Health Calculation, con * 10
+	thisPlayerStats["BaseStats"]["MainStats"]["MaxHealth"] = ((thisPlayerStats["BaseStats"]["AbilityScores"]["Constitution"]) * 10) -- Max Health Calculation, con * 10 -- TODO: add a function at some point to recalculate the max health with all the modifiers all at once, for other possible variables for the max health.
 	
 	
 	thisPlayerStats["Class"] = Class
@@ -77,10 +77,14 @@ function playerStats.AssignClassStats(PlayerID, Class)
 	--TODO: later change the abilities to update with a seperate function, whenever the weapon is changed. call that function here. Same goes with the animation stuff you did earlier that you left as placeholder
 	local primaryWeaponID = thisClassData["BaseEquipment"]["PrimaryWeapon"]
 	thisPlayerStats["Equipped"]["PrimaryWeapon"] = primaryWeaponID
-	if moduleItemsData.Weapons[primaryWeaponID] then
-		for abilityName, abilityID in moduleItemsData.Weapons[primaryWeaponID]["EquipmentAbilities"] do
+	if moduleItemsData[primaryWeaponID] then
+		for abilityName, abilityID in moduleItemsData[primaryWeaponID]["EquipmentAbilities"] do
 			thisPlayerStats["Abilities"]["EquipmentAbilities"][abilityName] = abilityID
 		end
+	end
+	
+	for i, v in thisClassData["BaseEquipment"]["Inventory"] do
+		table.insert(thisPlayerStats["Inventory"], v)
 	end
 	
 	
@@ -131,5 +135,36 @@ function playerStats.GetPlayerUnitStats(PlayerID)
 end
 
 
+function playerStats.updatePlayerInventory(playerID)
+	local playerStatsData = playerStats.SavedPlayerStats[playerID]
+	
+	local playerInstance = game.Players:GetPlayerByUserId(playerID)
+	game.ReplicatedStorage.RemoteEvents.PlayerInventory.UpdatePlayerInventory:FireClient(playerInstance, playerStatsData)
+end
+
+
+--TODO: add a check so that players can't access their inventory mid combat if a bug or exploiter occurs.
+function playerStats.equipItemFromInventory(playerID, inventoryID)
+	local thisPlayerStats = playerStats.SavedPlayerStats[playerID]
+	
+	
+	
+	local thisItemId = thisPlayerStats["Inventory"][inventoryID]
+	local itemInfo = moduleItemsData[thisItemId]
+	
+	
+	print(itemInfo)
+	if itemInfo["ItemType"] == "Consumable" then
+		print("consumable used code")
+		table.remove(thisPlayerStats.Inventory, inventoryID)
+	elseif itemInfo["ItemType"] == "PrimaryWeapon" then
+		table.insert(thisPlayerStats.Inventory, thisPlayerStats.Equipped["PrimaryWeapon"])
+		thisPlayerStats.Equipped["PrimaryWeapon"] = thisItemId
+		table.remove(thisPlayerStats.Inventory, inventoryID)
+	end
+	
+	
+	playerStats.updatePlayerInventory(playerID)
+end
 
 return playerStats

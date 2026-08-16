@@ -60,7 +60,6 @@ end
 
 function restSite()
 	moduleRestSiteSystems.loadRestSiteMapAllPlayers()
-	
 	-- wait for all players ready -- need to actually test this lol
 	local playersReady = false
 	local readyList = {}
