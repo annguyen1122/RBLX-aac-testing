@@ -30,7 +30,11 @@ function playerLocalInventories.updatePlayerInventory(data)
 	local playerEquipment = game.Players.LocalPlayer.PlayerGui.PlayerEquipment
 	local equipmentList = {"PrimaryWeapon"}
 	for i, v in equipmentList do
-		playerEquipment.Frame[v].ItemName.Text = data["Equipped"][v]
+		if data["Equipped"][v] then
+			playerEquipment.Frame[v].ItemName.Text = data["Equipped"][v]
+		else
+			warn("ERROR: player unit is missing ", v, " equipment.")
+		end
 	end
 end
 

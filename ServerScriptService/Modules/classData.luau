@@ -15,8 +15,8 @@ classData.PlayerClasses = {
 			}
 		},
 		["BaseEquipment"] = {
-			["PrimaryWeapon"] = nil,
-			["Inventory"] = {}
+			["PrimaryWeapon"] = "LinkedSword",
+			["Inventory"] = {"DebugItem"}
 		},
 		["ClassAbilities"] = {
 			["Debug Attack"] = "DebugAttack",

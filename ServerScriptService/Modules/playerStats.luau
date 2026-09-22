@@ -1,5 +1,6 @@
 local moduleClassData = require(game.ServerScriptService.Modules.classData)
 local moduleItemsData = require(game.ServerScriptService.Modules.ItemsData)
+local moduleEventsList = require(game.ServerScriptService.Modules.EventsList)
 
 local playerStats = {}
 
@@ -165,6 +166,26 @@ function playerStats.equipItemFromInventory(playerID, inventoryID)
 	
 	
 	playerStats.updatePlayerInventory(playerID)
+end
+
+
+function addItemToInventory(playerID, itemID)
+	local thisPlayerStats = playerStats.SavedPlayerStats[playerID]
+	table.insert(thisPlayerStats["Inventory"], itemID)
+end
+
+function playerStats.addEventRewards(playerID, eventId)
+	local rewardData = moduleEventsList.CombatEncounter[eventId].Rewards
+	
+	for itemId, itemData in rewardData do
+		local luck = math.random(1, 100)
+		if luck < itemData["Chance"] then
+			print("got it")
+			addItemToInventory(playerID, itemId)
+		else
+			print("bad luck")
+		end
+	end
 end
 
 return playerStats

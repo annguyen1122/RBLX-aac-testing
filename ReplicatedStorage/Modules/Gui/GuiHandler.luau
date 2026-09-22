@@ -52,15 +52,19 @@ function openSubmenuTargeting(validTargets, actionInternalName)
 	newSubmenu.Name = "submenuTargeting"
 	newSubmenu.Parent =  game.Players.LocalPlayer.PlayerGui.prototypeActionSelect.Frame --make this more safe, cause rn it's assuming there is a prototypeactionselect
 end
+function GuiHandler.closeSubmenuTargeting()
+	local submenu = game.Players.LocalPlayer.PlayerGui.prototypeActionSelect.Frame["submenuTargeting"]
+	submenu:Destroy()
+end
 -- later rewrite this, maybe a better approach might be to instead call the server for validtargets data and handle the gui locally, instead of passing the values to server to pass back to client with more data.
 -- oh and properly rename validtargets to be validenemytargets
 
 --alternative to submenu targeting, click enemies directly.
 --also added more code later for stat display on hover too. TODO: probably change this to an independent thing, so it's not dependent on unit targeting/needing an action hovered.
 
-function openHighlightTargeting(validTargets, actionInternalName)
 
-	
+local clickEventList = {}
+function openHighlightTargeting(validTargets, actionInternalName)
 	--TODO: disconnect the highlight stuff when disabled since it keeps adding more events to the click detector.
 	for targetId,targetData in validTargets do
 		
@@ -72,9 +76,13 @@ function openHighlightTargeting(validTargets, actionInternalName)
 		
 		local newClickDetector = targetWorkspaceInstance:FindFirstChild("ClickDetector") -- uses the same click detector from the stat display
 		
-		newClickDetector.MouseClick:Connect(function()
+		local clickEvent
+		clickEvent = newClickDetector.MouseClick:Connect(function() 
 			game.ReplicatedStorage.RemoteEvents.Gui.actionMenu:FireServer("performAction", actionInternalName, targetId)
+			clickEvent:Disconnect()
 		end)
+		table.insert(clickEventList, clickEvent) -- event is saved outside the function
+		--there must be a better way to handle this, it feels wrong. the issue of the event sticking around after, causing the player to be able to send multiple fires to the server causing their actions to be 'queued' in the serverside wait().
 		
 		newClickDetector.MouseHoverEnter:Connect(function()
 			newHighlight.FillTransparency = 0.5
@@ -85,21 +93,19 @@ function openHighlightTargeting(validTargets, actionInternalName)
 		end)
 	end
 end
-
-function GuiHandler.closeSubmenuTargeting()
-	local submenu = game.Players.LocalPlayer.PlayerGui.prototypeActionSelect.Frame["submenuTargeting"]
-	submenu:Destroy()
-end
-
 function GuiHandler.closeHighlightTargeting(encounterData)
 	for unitID,unitData in encounterData["Units"] do
 		local targetWorkspaceInstance = unitData["UnitData"]["WorkspaceInstance"]
-		
+
 		if targetWorkspaceInstance:FindFirstChild("Highlight") then
 			targetWorkspaceInstance:FindFirstChild("Highlight"):Destroy()
+			for i, clickEvent in clickEventList do
+				clickEvent:Disconnect()
+			end
 		end
 	end
 end
+
 
 --assumes actionmenu exists
 function GuiHandler.closeActionMenu()

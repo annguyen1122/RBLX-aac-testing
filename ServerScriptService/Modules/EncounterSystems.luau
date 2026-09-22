@@ -5,6 +5,7 @@ local MemoryStoreService = game:GetService("MemoryStoreService")
 local moduleTBSystems = require(game.ServerScriptService.Modules.TBSystems)
 local moduleRestSiteSystems = require(game.ServerScriptService.Modules.RestSiteSystems)
 local moduleRouteHandler = require(game.ServerScriptService.Modules.RouteHandler)
+local modulePlayerStats = require(game.ServerScriptService.Modules.playerStats)
 
 local EncounterSystems = {}
 
@@ -53,10 +54,21 @@ function campaignLoop()
 		wait(0.5) -- infinite loop safeguard
 		local routeOption = restSite()
 		
-		EncounterSystems.LoadEncounter(routeOption)
+		local isVictory = EncounterSystems.LoadEncounter(routeOption)
+		if isVictory == false then
+			print("breaks campaign loop, campaign over")
+			break
+		elseif isVictory == true then
+			--rewards screen TODO
+			--distribute rewards
+			for i, playerId in EncounterSystems.PlayerList do
+				modulePlayerStats.addEventRewards(playerId, routeOption)
+			end
+		end
 	end
 	
 end
+
 
 function restSite()
 	moduleRestSiteSystems.loadRestSiteMapAllPlayers()
@@ -111,11 +123,8 @@ end
 function EncounterSystems.LoadEncounter(encounterListId)
 	game.ReplicatedStorage.RemoteEvents.LoadGUI.AllPlayersLoadRouteChoices:FireAllClients(false) -- closes gui
 	moduleRestSiteSystems.unloadRestSiteMap()
-	moduleTBSystems.startEncounter(encounterListId)
-end
-
-function EncounterSystems.EncounterEnd()
-	
+	local isVictory = moduleTBSystems.startEncounter(encounterListId)
+	return isVictory
 end
 
 function EncounterSystems.GetAdjacentChoices(currentNode)
@@ -134,6 +143,5 @@ function EncounterSystems.GetAdjacentChoices(currentNode)
 	
 	return returnedAdjacentChoices
 end
-
 
 return EncounterSystems

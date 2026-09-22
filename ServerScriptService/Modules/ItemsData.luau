@@ -9,8 +9,8 @@ ItemsData = {
 			["Sword Lunge"] = "SwordLunge"
 		},
 		["Animations"] = {
-			["IdleStance"] = "swordIdle"
-			
+			["IdleStance"] = "swordIdle",
+			["Downed"] = "swordDowned"
 		},
 		
 		["ModelData"] = {

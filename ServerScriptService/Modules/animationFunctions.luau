@@ -65,7 +65,7 @@ end
 
 function animationFunctions.swordIdle(animator, isMirrored)
 	local animation = Instance.new("Animation")
-	
+	animation.Name = "Idle"
 	if isMirrored == true then
 		animation.AnimationId = 'rbxassetid://103420326914248'
 	else
@@ -75,6 +75,36 @@ function animationFunctions.swordIdle(animator, isMirrored)
 	local animtrack = animator:LoadAnimation(animation)
 	animtrack:Play()
 	
+	return animtrack
+end
+
+function animationFunctions.swordDowned(animator, isMirrored)
+	local animation = Instance.new("Animation")
+	
+	--stops the current idle animation to replace with the downed.
+	for i, playingAnim in animator:GetPlayingAnimationTracks() do
+		if playingAnim.Name == "Idle" then
+			playingAnim:Stop()
+		end
+	end
+	
+	--transition
+	local transitionAnim = Instance.new("Animation")
+	transitionAnim.AnimationId = "rbxassetid://118049718800206"
+	local animationTrack = animator:LoadAnimation(transitionAnim)
+	animationTrack:Play()
+	animationTrack:GetMarkerReachedSignal("fallenDown"):Wait()
+	animationTrack:Destroy()
+
+	if isMirrored == true then
+		animation.AnimationId = 'rbxassetid://90254888508644'
+	else
+		animation.AnimationId = 'rbxassetid://90254888508644'
+	end
+	
+	
+	local animtrack = animator:LoadAnimation(animation)
+	animtrack:Play()
 	return animtrack
 end
 

@@ -23,7 +23,7 @@ function RestSiteSystems.loadRestSiteMapAllPlayers()
 	for playerID, playerData in modulePlayerStats.SavedPlayerStats do
 		modulePlayerStats.updatePlayerInventory(playerID)
 	end
-	moduleMapHandler.loadMap("RestSite")
+	moduleMapHandler.loadMap("RestSite", "CrossroadsRestSite")
 end
 
 function RestSiteSystems.unloadRestSiteMap()

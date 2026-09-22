@@ -10,11 +10,10 @@ local moduleTurnHelper = require(game.ReplicatedStorage.Modules.helpers.turnHelp
 local moduleAnimationFunctions = require(game.ServerScriptService.Modules.animationFunctions)
 local moduleItemsData = require(game.ServerScriptService.Modules.ItemsData)
 local moduleMapHandler = require(game.ServerScriptService.Modules.MapHandler)
-local moduleEncounterList = require(game.ServerScriptService.Modules.EncounterList)
 local modulePlayerStats = require(game.ServerScriptService.Modules.playerStats)
+local moduleEventsList = require(game.ServerScriptService.Modules.EventsList)
 
 local TBSystems = {}
---blap huh?
 --todo, split the encounter data storage from this system thing to a different module script
 TBSystems.encounterData = {}
 
@@ -23,27 +22,25 @@ function TBSystems.startEncounter(encounterListId)
 	local baseUnits = loadEncounterBaseUnits(encounterListId)
 	local encounterID = createEncounterDatabase(baseUnits)
 	
-	--loadMap(newUUID, "Crossroads", "CrossroadsVariation1")
-	moduleMapHandler.loadMapFromCategory("Crossroads")
+	local mapCategory = moduleEventsList.CombatEncounter[encounterListId].MapCategory
+	local mapName = moduleEventsList.CombatEncounter[encounterListId].MapName
+	moduleMapHandler.loadMap(mapCategory,mapName)
+	
 	moduleMapHandler.setPlayersCamera(TBSystems.encounterData[encounterID]["Units"])
 	createTurnOrder(encounterID)
 	assignTeams(encounterID)
 	summonUnits(encounterID) -- do after teams are assigned
-	--beginNextTurn(encounterID)
 	loadPlayerGUI(encounterID)
 	
 	turnLoop(encounterID)
 
-
---	endTurn(encounterID)
-	
+	local isVictory = endEncounter(encounterID)
 	print("ENCOUNTER END")
-	return true
+	return isVictory
 end
 
 function turnLoop(encounterID)
 	beginNextTurn(encounterID)
-	
 	
 	local isEnd = false
 	while isEnd == false do
@@ -54,9 +51,7 @@ function turnLoop(encounterID)
 		if isEnd == false then
 			beginNextTurn(encounterID)
 		end
-		
 	end
-	
 end
 
 function loadPlayerGUI(encounterID)
@@ -73,7 +68,7 @@ end
 
 function loadEncounterBaseUnits(encounterListId)
 	local returningBaseUnits = {}
-	local encounterList = moduleEncounterList.EnemyUnits[encounterListId]
+	local encounterList = moduleEventsList.CombatEncounter[encounterListId].EnemyUnits
 	
 	for unitName, unitData in encounterList do
 		returningBaseUnits[unitName] = moduleUnitDatabase.newUnit(unitData["SideType"], unitData["UnitID"]) --TODO: add a warn if the encounter list unit doesnt have an id or sidetype
@@ -141,6 +136,9 @@ function TBSystems.playerTurn(encounterID, encounterUnitID)
 	local firedPlayer, RE_request, arg1, arg2
 	firedPlayer, RE_request, arg1, arg2 = game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Wait()
 	
+	print(firedPlayer.UserId, thisPlayer.UserId, RE_request)
+	
+	--usually doesnt fire if things go right
 	while firedPlayer.UserId ~= thisPlayer.UserId and RE_request ~= "performAction" do -- check for if it's the same player, so multiple players don't conflict with this
 		firedPlayer, RE_request, arg1, arg2 = game.ReplicatedStorage.RemoteEvents.Gui.actionMenu.OnServerEvent:Wait()
 	end
@@ -325,7 +323,8 @@ function doDeath(encounterID, unitID)
 	local thisUnit = thisEncounter["Units"][unitID]
 	
 	local workspaceInstance = thisUnit["UnitData"]["WorkspaceInstance"]
-	local success, error = pcall(function() moduleAnimationFunctions[thisUnit["Animations"]["Death"]](workspaceInstance.Humanoid.Animator) end)
+	local deathAnimationFunction = moduleItemsData[thisEncounter["Units"][unitID]["Equipment"]["PrimaryWeapon"]].Animations.Downed
+	local success, error = pcall(function() moduleAnimationFunctions[deathAnimationFunction](workspaceInstance.Humanoid.Animator) end)
 	if error then
 		print("pcall Error: ANIMATION NOT FOUND", error)
 	end
@@ -334,6 +333,7 @@ function doDeath(encounterID, unitID)
 	print("UNIT ", unitID, " is dead")
 end
 
+-- used to both check if the encounter is ended, and whether or not win or loss. probably split this later to make it so that there isnt a check every time.
 function checkVictory(encounterID)
 	local thisEncounter = TBSystems.encounterData[encounterID]
 	
@@ -341,18 +341,18 @@ function checkVictory(encounterID)
 	local aliveEnemyside = moduleTurnHelper.getAllAliveTeamUnits("Enemyside", thisEncounter)
 	
 	local isEncounterEnd = false
+	local isVictory
 	
 	if not next(aliveEnemyside) then
-		print("YYAAAY YOU WIINNN")
-		endEncounter(encounterID)
+		isVictory = true
 		isEncounterEnd = true
 	elseif not next(alivePlayerside) then
 		print("OH NOOOES YOU LOOSSTT")
-		endEncounter(encounterID)
+		isVictory = false
 		isEncounterEnd = true
 	end
 	
-	return isEncounterEnd
+	return isEncounterEnd, isVictory
 end
 
 
@@ -448,7 +448,7 @@ function loadSingleUnit(encounterID, unitCopy, spawnIndex, spawnPlatform, storag
 	thisEncounter["Units"][unitID]["UnitData"]["WorkspaceInstance"] = unitCopy
 
 	-- set idle animation
-	local animationFunctionName = thisEncounter["Units"][unitID]["Animations"]["Idle"]
+	local animationFunctionName = moduleItemsData[thisEncounter["Units"][unitID]["Equipment"]["PrimaryWeapon"]].Animations.IdleStance
 	--print(animationFunctionName)
 	if animationFunctionName then
 		
@@ -512,9 +512,23 @@ end
 
 function endEncounter(encounterID)
 	
+	
+	
+	local _, isVictory = checkVictory(encounterID)
+	
+	if isVictory then
+		print("victory")
+	elseif not isVictory then
+		print("loss")
+	end
+	
+	--needs to be after, cause the victory status doesnt exist after you delete it.
+	--cleanup code, to not leave loose encounter data. idk if its necessary, but probably for the best.
 	moduleMapHandler.unloadCurrentMap()
 	TBSystems.encounterData[encounterID] = nil
 	unloadAllUnits()
+	
+	return isVictory
 end
 
 return TBSystems
