@@ -6,6 +6,7 @@ local playerStats = {}
 
 playerStats.SavedPlayerStats = {}
 
+-- for fallback values ig
 function playerStats.CreateBaseStats(PlayerID)
 	-- save the sh into savedplayerstats
 	
@@ -54,20 +55,27 @@ function playerStats.AssignClassStats(PlayerID, Class)
 	local thisClassData = moduleClassData.PlayerClasses[Class]
 	
 	thisPlayerStats["BaseStats"] = {}
+
+
+	local abilityScoreList = {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"}
 	
 	thisPlayerStats["BaseStats"]["AbilityScores"] = {}
-	thisPlayerStats["BaseStats"]["AbilityScores"]["Strength"] = thisClassData["RawStats"]["AbilityScores"]["Strength"]
-	thisPlayerStats["BaseStats"]["AbilityScores"]["Dexterity"] = thisClassData["RawStats"]["AbilityScores"]["Dexterity"]
-	thisPlayerStats["BaseStats"]["AbilityScores"]["Constitution"] = thisClassData["RawStats"]["AbilityScores"]["Constitution"]
-	thisPlayerStats["BaseStats"]["AbilityScores"]["Intelligence"] = thisClassData["RawStats"]["AbilityScores"]["Intelligence"]
-	thisPlayerStats["BaseStats"]["AbilityScores"]["Wisdom"] = thisClassData["RawStats"]["AbilityScores"]["Wisdom"]
-	thisPlayerStats["BaseStats"]["AbilityScores"]["Charisma"] = thisClassData["RawStats"]["AbilityScores"]["Charisma"]
+	for i, abilityScore in abilityScoreList do
+		thisPlayerStats["BaseStats"]["AbilityScores"][abilityScore] = thisClassData["RawStats"]["AbilityScores"][abilityScore]
+	end
+	--thisPlayerStats["BaseStats"]["AbilityScores"]["Strength"] = thisClassData["RawStats"]["AbilityScores"]["Strength"]
+	--thisPlayerStats["BaseStats"]["AbilityScores"]["Dexterity"] = thisClassData["RawStats"]["AbilityScores"]["Dexterity"]
+	--thisPlayerStats["BaseStats"]["AbilityScores"]["Constitution"] = thisClassData["RawStats"]["AbilityScores"]["Constitution"]
+	--thisPlayerStats["BaseStats"]["AbilityScores"]["Intelligence"] = thisClassData["RawStats"]["AbilityScores"]["Intelligence"]
+	--thisPlayerStats["BaseStats"]["AbilityScores"]["Wisdom"] = thisClassData["RawStats"]["AbilityScores"]["Wisdom"]
+	--thisPlayerStats["BaseStats"]["AbilityScores"]["Charisma"] = thisClassData["RawStats"]["AbilityScores"]["Charisma"]
 
+	updatePlayerStats(PlayerID)
 
-	thisPlayerStats["BaseStats"]["MainStats"] = {}
-	thisPlayerStats["BaseStats"]["MainStats"]["MaxHealth"] = ((thisPlayerStats["BaseStats"]["AbilityScores"]["Constitution"]) * 10) -- Max Health Calculation, con * 10 -- TODO: add a function at some point to recalculate the max health with all the modifiers all at once, for other possible variables for the max health.
-	
-	
+	-- for stats that save between runs. probably just health. slay the spire -esque stuff.
+	thisPlayerStats["PersistentStats"] = {}
+	thisPlayerStats["PersistentStats"]["Health"] = thisPlayerStats["DynamicStats"]["MainStats"]["MaxHealth"]
+
 	thisPlayerStats["Class"] = Class
 	
 	-- adds the classabilitys to the list, not overwrite.
@@ -88,7 +96,32 @@ function playerStats.AssignClassStats(PlayerID, Class)
 		table.insert(thisPlayerStats["Inventory"], v)
 	end
 	
+end
+
+-- updates all the player stats and calculates them based off the factors n stuff.
+function updatePlayerStats(playerID)
+	local thisPlayerStats = playerStats.SavedPlayerStats[playerID]
 	
+
+	local abilityScoreList = {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"}
+	
+	thisPlayerStats["BaseStats"]["MainStats"] = {}
+	--to read after the values are calculated, from armor, etc and other values to calculate. the mutable stats basically.
+	thisPlayerStats["DynamicStats"] = {}
+	thisPlayerStats["DynamicStats"]["AbilityScores"] = {}
+	-- for this add a check somewhere for the currently equipped armor modifiers and all that. maybe add a list of modifiers somewhere. yeah make a table of all the modifiers from currenly equipped armor.
+	for i, abilityScore in abilityScoreList do
+		thisPlayerStats["DynamicStats"]["AbilityScores"][abilityScore] = thisPlayerStats["BaseStats"]["AbilityScores"][abilityScore]
+	end
+	thisPlayerStats["DynamicStats"]["MainStats"] = {}
+	thisPlayerStats["DynamicStats"]["MainStats"]["MaxHealth"] = ((thisPlayerStats["DynamicStats"]["AbilityScores"]["Constitution"]) * 10) -- Max Health Calculation, con * 10 -- TODO: add a function at some point to recalculate the max health with all the modifiers all at once, for other possible variables for the max health.
+
+end
+
+function playerStats.updatePersistentStats(playerID, unitData)
+	local thisPlayerStats = playerStats.SavedPlayerStats[playerID]
+	
+	thisPlayerStats["PersistentStats"]["Health"] = unitData["Stats"]["Health"]
 end
 
 -- for use in encounters, in the TBSystems
@@ -106,8 +139,8 @@ function playerStats.GetPlayerUnitStats(PlayerID)
 		},
 	
 		["Stats"] = {
-			["MaxHealth"] = thisPlayerStats["BaseStats"]["MainStats"]["MaxHealth"],
-			["Health"] = thisPlayerStats["BaseStats"]["MainStats"]["MaxHealth"]
+			["MaxHealth"] = thisPlayerStats["DynamicStats"]["MainStats"]["MaxHealth"],
+			["Health"] = thisPlayerStats["PersistentStats"]["Health"]
 		},
 		["Animations"] = {
 			["Death"] = "placeholderDeath", -- TODO: replace this later

@@ -34,6 +34,8 @@ function TBSystems.startEncounter(encounterListId)
 	
 	turnLoop(encounterID)
 
+	print(TBSystems.encounterData[encounterID])
+
 	local isVictory = endEncounter(encounterID)
 	print("ENCOUNTER END")
 	return isVictory
@@ -78,6 +80,7 @@ function loadEncounterBaseUnits(encounterListId)
 		returningBaseUnits[playerID] = modulePlayerStats.GetPlayerUnitStats(playerID)
 	end
 	
+	print(returningBaseUnits)
 	return returningBaseUnits
 end
 
@@ -511,7 +514,7 @@ function unloadAllUnits()
 end
 
 function endEncounter(encounterID)
-	
+	local thisEncounter = TBSystems.encounterData[encounterID]
 	
 	
 	local _, isVictory = checkVictory(encounterID)
@@ -520,6 +523,12 @@ function endEncounter(encounterID)
 		print("victory")
 	elseif not isVictory then
 		print("loss")
+	end
+
+	-- updates persistent stats for all players, e.g. health n stuff.
+	for _, unitID in thisEncounter.Teams.Playerside do
+		local playerID = thisEncounter.Units[unitID].UnitData.PlayerID
+		modulePlayerStats.updatePersistentStats(playerID, thisEncounter.Units[unitID])
 	end
 	
 	--needs to be after, cause the victory status doesnt exist after you delete it.
