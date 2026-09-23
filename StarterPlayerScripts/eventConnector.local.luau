@@ -50,3 +50,9 @@ end)
 game.ReplicatedStorage.RemoteEvents.playerInput.ReadyChecks.restSiteEnd.OnClientEvent:Connect(function(isReady)
 	game.ReplicatedStorage.RemoteEvents.playerInput.ReadyChecks.restSiteEnd:FireServer(isReady);
 end)
+
+--basic code, doesnt really need the modulescript i guess.
+--might need to change later when i add animations to the gui to slide and whatnot.
+game.ReplicatedStorage.RemoteEvents.Gui.campPlayerInventory.OnClientEvent:Connect(function()
+	moduleGuiHandler.openCloseCampInventory()
+end)

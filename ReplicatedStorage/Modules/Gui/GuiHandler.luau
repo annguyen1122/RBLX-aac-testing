@@ -143,6 +143,7 @@ function GuiHandler.loadRouteChoices(choiceOptions)
 	
 end
 
+--this is for the hover display stuff
 function GuiHandler.InitializeStatDisplay()
 	local AllPlayerUnits = game.Workspace:FindFirstChild("Units"):FindFirstChild("PlayerUnits"):GetChildren()
 	local AllEnemyUnits = game.Workspace:FindFirstChild("Units"):FindFirstChild("EnemyUnits"):GetChildren()
@@ -169,6 +170,19 @@ function GuiHandler.InitializeStatDisplay()
 	for i, workspaceInstance in AllPlayerUnits do
 		linkStatDisplay(workspaceInstance)
 	end
+end
+
+function GuiHandler.openCloseCampInventory()
+	local player = game.Players.LocalPlayer
+
+	if player.PlayerGui.PlayerInventory.Enabled == true then
+		player.PlayerGui.PlayerInventory.Enabled = false
+		player.PlayerGui.PlayerEquipment.Enabled = false
+	else
+		player.PlayerGui.PlayerInventory.Enabled = true
+		player.PlayerGui.PlayerEquipment.Enabled = true
+	end
+
 end
 
 return GuiHandler

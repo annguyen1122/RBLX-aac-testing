@@ -16,7 +16,7 @@ classData.PlayerClasses = {
 		},
 		["BaseEquipment"] = {
 			["PrimaryWeapon"] = "LinkedSword",
-			["Inventory"] = {"DebugItem"}
+			["Inventory"] = {"DebugItem", "DebugItem", "DebugHeadArmor"}
 		},
 		["ClassAbilities"] = {
 			["Debug Attack"] = "DebugAttack",

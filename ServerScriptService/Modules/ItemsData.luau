@@ -44,6 +44,14 @@ ItemsData = {
 
 		["Tags"] = {"Sword"}
 		
+	},
+	["DebugHeadArmor"] = {
+		["ItemType"] = "Head",
+		
+		["Modifiers"] = {
+			["Constitution"] = 1,
+			["Armor"] = 10,
+		}
 	}
 	
 }

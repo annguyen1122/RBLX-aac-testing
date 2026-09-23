@@ -102,7 +102,7 @@ function createEncounterDatabase(baseUnits)
 		
 		
 		-- replacement for the other copy system, with also expected categories so i can catch when there's a missing or extra category
-		local expectedCategories = {"UnitData", "Stats", "Actions", "Animations", "Equipment", "AbilityScores"}	
+		local expectedCategories = {"UnitData", "Stats", "Actions", "Animations", "Equipment", "AbilityScores", "DamageCalcStats"}	
 		for i, v in expectedCategories do
 			newUnitData[v] = {}
 			if storedUnitData[v] then
@@ -504,8 +504,10 @@ function updateAllStatDisplay(encounterID)
 		local indivStatDisplay = unitData["UnitData"]["WorkspaceInstance"]:FindFirstChild("StatDisplay")
 		
 		--update Health
-		indivStatDisplay.BillboardGui.Frame.Health.Value.Text = unitData["Stats"]["Health"]
-		
+		local unitHealth = unitData["Stats"]["Health"]
+		local unitMaxHealth = unitData["Stats"]["MaxHealth"]
+		indivStatDisplay.BillboardGui.Frame.Health.Value.Text = unitHealth
+		indivStatDisplay.BillboardGui.Frame.Health.barColor.Size = UDim2.new((unitHealth/unitMaxHealth), 0, 1, 0)
 	end
 end
 

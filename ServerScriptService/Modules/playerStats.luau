@@ -30,7 +30,6 @@ function playerStats.CreateBaseStats(PlayerID)
 	
 	
 	playerStats.SavedPlayerStats[PlayerID]["BaseStats"]["MainStats"] = {}
-	playerStats.SavedPlayerStats[PlayerID]["BaseStats"]["MainStats"]["MaxHealth"] = 100
 	
 	playerStats.SavedPlayerStats[PlayerID]["Class"] = "Unselected"
 	
@@ -42,7 +41,11 @@ function playerStats.CreateBaseStats(PlayerID)
 	playerStats.SavedPlayerStats[PlayerID]["Inventory"] = {}
 	
 	playerStats.SavedPlayerStats[PlayerID]["Equipped"] = {}
-	playerStats.SavedPlayerStats[PlayerID]["Equipped"]["PrimaryWeapon"] = {}
+	local equipTypeList = {"PrimaryWeapon", "Head"}
+	for i, equipType in equipTypeList do
+		playerStats.SavedPlayerStats[PlayerID]["Equipped"][equipType] = "Empty"
+	end
+	
 	
 end
 
@@ -54,21 +57,15 @@ function playerStats.AssignClassStats(PlayerID, Class)
 	local thisPlayerStats = playerStats.SavedPlayerStats[PlayerID]
 	local thisClassData = moduleClassData.PlayerClasses[Class]
 	
-	thisPlayerStats["BaseStats"] = {}
-
+	--honestly should probably combine base stats and this function together
+	-- dont run these, should have already been set up
+	--thisPlayerStats["BaseStats"] = {}
+	--thisPlayerStats["BaseStats"]["AbilityScores"] = {}
 
 	local abilityScoreList = {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"}
-	
-	thisPlayerStats["BaseStats"]["AbilityScores"] = {}
 	for i, abilityScore in abilityScoreList do
 		thisPlayerStats["BaseStats"]["AbilityScores"][abilityScore] = thisClassData["RawStats"]["AbilityScores"][abilityScore]
 	end
-	--thisPlayerStats["BaseStats"]["AbilityScores"]["Strength"] = thisClassData["RawStats"]["AbilityScores"]["Strength"]
-	--thisPlayerStats["BaseStats"]["AbilityScores"]["Dexterity"] = thisClassData["RawStats"]["AbilityScores"]["Dexterity"]
-	--thisPlayerStats["BaseStats"]["AbilityScores"]["Constitution"] = thisClassData["RawStats"]["AbilityScores"]["Constitution"]
-	--thisPlayerStats["BaseStats"]["AbilityScores"]["Intelligence"] = thisClassData["RawStats"]["AbilityScores"]["Intelligence"]
-	--thisPlayerStats["BaseStats"]["AbilityScores"]["Wisdom"] = thisClassData["RawStats"]["AbilityScores"]["Wisdom"]
-	--thisPlayerStats["BaseStats"]["AbilityScores"]["Charisma"] = thisClassData["RawStats"]["AbilityScores"]["Charisma"]
 
 	updatePlayerStats(PlayerID)
 
@@ -105,17 +102,36 @@ function updatePlayerStats(playerID)
 
 	local abilityScoreList = {"Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"}
 	
-	thisPlayerStats["BaseStats"]["MainStats"] = {}
 	--to read after the values are calculated, from armor, etc and other values to calculate. the mutable stats basically.
-	thisPlayerStats["DynamicStats"] = {}
+	thisPlayerStats["DynamicStats"] = {}  -- it resets every time its updated, and recalculated accordingly.
 	thisPlayerStats["DynamicStats"]["AbilityScores"] = {}
-	-- for this add a check somewhere for the currently equipped armor modifiers and all that. maybe add a list of modifiers somewhere. yeah make a table of all the modifiers from currenly equipped armor.
+
 	for i, abilityScore in abilityScoreList do
 		thisPlayerStats["DynamicStats"]["AbilityScores"][abilityScore] = thisPlayerStats["BaseStats"]["AbilityScores"][abilityScore]
 	end
+	
+	thisPlayerStats["DynamicStats"]["DamageCalc"] = {}
+	thisPlayerStats["DynamicStats"]["DamageCalc"]["Armor"] = 0
+	
+	--^^ base values, set in places before they're calculated to be later calculated.
+	
+	-- calculate all the equipment's modifiers
+	for i, itemEquipmentId in thisPlayerStats.Equipped do
+		local itemEquipment = moduleItemsData[itemEquipmentId]
+		if itemEquipmentId ~= "Empty" and itemEquipment["Modifiers"] then--if the item has modifiers
+			for modifierName, value in itemEquipment["Modifiers"] do
+				if modifierName == "Armor" then
+					thisPlayerStats["DynamicStats"]["DamageCalc"]["Armor"] += value
+				elseif modifierName == "Constitution" then -- probably add another loop here to go through the ability scores, instead of repeating one by one. for now, just do it for con and strength.
+					thisPlayerStats["DynamicStats"]["AbilityScores"]["Constitution"] += value
+				end
+			end
+		end
+	end
+	
+	-- apply the stats to actual stuff, cause some stats rely on other stats.
 	thisPlayerStats["DynamicStats"]["MainStats"] = {}
-	thisPlayerStats["DynamicStats"]["MainStats"]["MaxHealth"] = ((thisPlayerStats["DynamicStats"]["AbilityScores"]["Constitution"]) * 10) -- Max Health Calculation, con * 10 -- TODO: add a function at some point to recalculate the max health with all the modifiers all at once, for other possible variables for the max health.
-
+	thisPlayerStats["DynamicStats"]["MainStats"]["MaxHealth"] = ((thisPlayerStats["DynamicStats"]["AbilityScores"]["Constitution"]) * 10) -- Max Health Calculation, con * 10
 end
 
 function playerStats.updatePersistentStats(playerID, unitData)
@@ -142,10 +158,6 @@ function playerStats.GetPlayerUnitStats(PlayerID)
 			["MaxHealth"] = thisPlayerStats["DynamicStats"]["MainStats"]["MaxHealth"],
 			["Health"] = thisPlayerStats["PersistentStats"]["Health"]
 		},
-		["Animations"] = {
-			["Death"] = "placeholderDeath", -- TODO: replace this later
-			["Idle"] = "swordIdle" -- also replace later
-		}
 	}
 	
 	returningPlayerUnitStats["Actions"] = {}
@@ -160,9 +172,12 @@ function playerStats.GetPlayerUnitStats(PlayerID)
 	returningPlayerUnitStats["Equipment"]["PrimaryWeapon"] = thisPlayerStats["Equipped"]["PrimaryWeapon"]
 	
 	returningPlayerUnitStats["AbilityScores"] = {}
-	for i, v in thisPlayerStats["BaseStats"]["AbilityScores"] do
+	for i, v in thisPlayerStats["DynamicStats"]["AbilityScores"] do
 		returningPlayerUnitStats["AbilityScores"][i] = v
 	end
+	
+	returningPlayerUnitStats["DamageCalcStats"] = {}
+	returningPlayerUnitStats["DamageCalcStats"]["Armor"] = thisPlayerStats["DynamicStats"]["DamageCalc"]["Armor"]
 	
 	return returningPlayerUnitStats
 	
@@ -176,7 +191,6 @@ function playerStats.updatePlayerInventory(playerID)
 	game.ReplicatedStorage.RemoteEvents.PlayerInventory.UpdatePlayerInventory:FireClient(playerInstance, playerStatsData)
 end
 
-
 --TODO: add a check so that players can't access their inventory mid combat if a bug or exploiter occurs.
 function playerStats.equipItemFromInventory(playerID, inventoryID)
 	local thisPlayerStats = playerStats.SavedPlayerStats[playerID]
@@ -187,17 +201,28 @@ function playerStats.equipItemFromInventory(playerID, inventoryID)
 	local itemInfo = moduleItemsData[thisItemId]
 	
 	
-	print(itemInfo)
+	--print(itemInfo)
 	if itemInfo["ItemType"] == "Consumable" then
 		print("consumable used code")
 		table.remove(thisPlayerStats.Inventory, inventoryID)
 	elseif itemInfo["ItemType"] == "PrimaryWeapon" then
-		table.insert(thisPlayerStats.Inventory, thisPlayerStats.Equipped["PrimaryWeapon"])
+		if thisPlayerStats.Equipped[itemInfo["ItemType"]] ~= "Empty" then
+			table.insert(thisPlayerStats.Inventory, thisPlayerStats.Equipped[itemInfo["ItemType"]])
+		end
+		--^^ this if, make it not copied over and over for each equipment
 		thisPlayerStats.Equipped["PrimaryWeapon"] = thisItemId
 		table.remove(thisPlayerStats.Inventory, inventoryID)
+	elseif itemInfo["ItemType"] == "Head" then
+		if thisPlayerStats.Equipped[itemInfo["ItemType"]] ~= "Empty" then
+			table.insert(thisPlayerStats.Inventory, thisPlayerStats.Equipped[itemInfo["ItemType"]])
+		end
+		thisPlayerStats.Equipped["Head"] = thisItemId
+		table.remove(thisPlayerStats.Inventory, inventoryID)
+	else
+		warn("ERROR: invalid item type")
 	end
 	
-	
+	updatePlayerStats(playerID)
 	playerStats.updatePlayerInventory(playerID)
 end
 
