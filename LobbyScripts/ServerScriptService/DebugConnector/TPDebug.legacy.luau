@@ -1,6 +1,5 @@
 
-local moduleStartCampaign = require(game.ServerScriptService.ModuleScripts.StartCampaign)
-local modulePreCampaignData = require(game.ServerScriptService.ModuleScripts.PreCampaignData)
+
 
 local PlayerService = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")

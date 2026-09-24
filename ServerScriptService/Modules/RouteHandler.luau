@@ -23,6 +23,50 @@ function RouteHandler.SetMapDebugDefault()
 			[4] = {}
 		}
 	}
+	print(RouteHandler.ActiveRouteMap)
+end
+
+-- generates a random branching map with like no intersections cause im too lazy for that. TODO: make one that actually has intersections and stuff so you can do a slay the spire -esque map later on.
+function RouteHandler.generateRandomMap(depth)
+	-- default depth
+	if depth == nil then
+		depth = 3
+	end
+	
+	RouteHandler.ActiveRouteMap = {
+		["Nodes"] = {
+			[1] = "Beginning" -- probably add code later to handle this, cause this is not a valid node name
+		},
+		["Connections"] = {}
+	}
+	
+	local supposedtobeRandomNode = "DebugEncounter"
+	
+	local nodeCounter = 2 -- it's 2 cause node 1 is already made
+	local function generateRandomSubNodes(headNode, limitDepth, currentDepth)
+		print(RouteHandler.ActiveRouteMap, headNode)
+		--default value for currentDepth
+		if not currentDepth then
+			currentDepth = 0
+		end
+		-- stop if depth is too far
+		print(currentDepth, limitDepth)
+		if currentDepth >= limitDepth then
+			print("end?")
+			return
+		end
+		
+		RouteHandler.ActiveRouteMap["Connections"][headNode] = {}
+		for i = 1, math.random(1,4), 1 do
+			RouteHandler.ActiveRouteMap["Nodes"][nodeCounter] = supposedtobeRandomNode
+			table.insert(RouteHandler.ActiveRouteMap["Connections"][headNode], nodeCounter)
+			nodeCounter += 1
+			generateRandomSubNodes(nodeCounter - 1, limitDepth, currentDepth + 1)
+		end
+	end
+
+	generateRandomSubNodes(1, depth)
+	
 end
 
 function RouteHandler.UpdateCurrentNote(setNode)

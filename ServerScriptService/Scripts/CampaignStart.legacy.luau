@@ -5,8 +5,12 @@ game:GetService("Players").PlayerAdded:Connect(function(playerJoined)
 
 	wait(3) -- TODO: later set this up properly, to take into account player loadings
 	game.ReplicatedStorage.RemoteEvents.Gui.setCamera:FireClient(playerJoined)
-
+	
+	moduleEncounterSystems.loadData(playerJoined)
+	
 end)
+
+
 
 moduleEncounterSystems.gameLaunch()
 

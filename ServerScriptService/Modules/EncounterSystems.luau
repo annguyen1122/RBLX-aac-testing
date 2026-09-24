@@ -1,11 +1,15 @@
 -- the more general systems to hook everything up together
 -- probably rename it to campaign systems
 local MemoryStoreService = game:GetService("MemoryStoreService")
+local DataStoreService = game:GetService("DataStoreService")
+local playerDataStore = DataStoreService:GetDataStore("PlayerData")
 
 local moduleTBSystems = require(game.ServerScriptService.Modules.TBSystems)
 local moduleRestSiteSystems = require(game.ServerScriptService.Modules.RestSiteSystems)
 local moduleRouteHandler = require(game.ServerScriptService.Modules.RouteHandler)
 local modulePlayerStats = require(game.ServerScriptService.Modules.playerStats)
+
+
 
 local EncounterSystems = {}
 
@@ -14,7 +18,9 @@ EncounterSystems.PlayerList = {22078642} -- TODO: FOR TESTING THIS FOR NOW WILL 
 
 function EncounterSystems.gameLaunch()
 	
-	moduleRouteHandler.SetMapDebugDefault()
+	--moduleRouteHandler.SetMapDebugDefault()
+	
+	moduleRouteHandler.generateRandomMap(2)
 
 	EncounterSystems.JoiningPlayersPlayerList() -- for getting the playerlist in the system for the ready check
 	wait(3) -- this is the fake ready check, so i'll add it later
@@ -23,8 +29,56 @@ function EncounterSystems.gameLaunch()
 
 end
 
+
+
+local loadedPlayerDataStore = {}
+function EncounterSystems.loadData(joiningPlayer)
+
+	local success, joiningPlayerDataStore = pcall(function()
+		return playerDataStore:GetAsync(joiningPlayer.UserId)
+	end)
+	
+	-- just load the player's data
+	if success then
+		-- empty save
+		if joiningPlayerDataStore == nil then
+			local defaultSave = {
+				["ChosenClass"] = "Blademaster"
+			}
+			print("Empty Save, Setting Default")
+			joiningPlayerDataStore = defaultSave
+			local success, result = pcall(function()
+				playerDataStore:SetAsync(joiningPlayer.UserId, defaultSave)
+			end)
+			if not success then
+				warn("Setting Default Save Failed", result)
+			else
+				print("Save Successful")
+			end
+		end
+		print("Load Successful")
+	else
+		warn("Player Data Load Failed", joiningPlayerDataStore)
+	end
+	
+	
+	loadedPlayerDataStore[joiningPlayer.UserId] = joiningPlayerDataStore
+	--print(loadedPlayerDataStore)
+	local thisPlayerDataStore = loadedPlayerDataStore[joiningPlayer.UserId]
+	
+	-- assign player stats etc for the class chosen
+	local succ, result = pcall(function()
+		modulePlayerStats.CreateBaseStats(joiningPlayer.UserId)
+	end)
+	if succ then
+		modulePlayerStats.AssignClassStats(joiningPlayer.UserId, thisPlayerDataStore["ChosenClass"])
+	else
+		warn(result)
+	end
+end
+
 -- sets the player list according to the teleport data of the first player's access code
-function EncounterSystems.GetPlayerList(accessCode)
+function EncounterSystems.setPlayerList(accessCode)
 	if not EncounterSystems.PlayerList then
 		local accessCodeData = MemoryStoreService:GetHashMap("CampaignHashMap"):GetAsync(accessCode)
 		print(accessCodeData[1])
@@ -33,13 +87,15 @@ function EncounterSystems.GetPlayerList(accessCode)
 	return EncounterSystems.PlayerList
 end
 
+-- FOR NEXT TIME: combine the above and below casuse yk
+
 -- run once
 function EncounterSystems.JoiningPlayersPlayerList()
 	game:GetService("Players").PlayerAdded:Connect(function(joiningPlayer)
 		local joinData = joiningPlayer:GetJoinData()
 		local accessCode = joinData.TeleportData
 		--accessCode = "TEST"
-		local playerList = EncounterSystems.GetPlayerList(accessCode)
+		local playerList = EncounterSystems.setPlayerList(accessCode)
 	end)
 
 end
